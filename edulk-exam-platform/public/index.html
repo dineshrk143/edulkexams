@@ -1,0 +1,1074 @@
+<!DOCTYPE html>
+<html lang="si">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EDULK - ඔන්ලයින් විභාග වේදිකාව</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Iskoola+Pota&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', 'Iskoola Pota', sans-serif; }
+        @media print {
+            body * { visibility: hidden; }
+            #printable-area, #printable-area * { visibility: visible; }
+            #printable-area { position: absolute; left: 0; top: 0; width: 100%; }
+        }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800 min-h-screen flex flex-col">
+
+    <!-- Header -->
+    <header class="bg-indigo-600 text-white shadow-md">
+        <div class="max-w-6xl mx-auto px-4 py-4 flex justify-between items-center">
+            <div class="flex items-center space-x-2 cursor-pointer" onclick="showDashboard()">
+                <svg class="w-8 h-8 text-amber-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/></svg>
+                <span class="text-xl font-bold tracking-wide">EDULK Exams</span>
+            </div>
+            <div id="user-nav" class="hidden flex items-center space-x-4">
+                <button onclick="showStudentProfile()" id="profile-btn" class="text-xs bg-indigo-700 hover:bg-indigo-800 px-3 py-1.5 rounded transition font-semibold">මගේ පැතිකඩ (Profile)</button>
+                <span id="welcome-user" class="text-sm font-medium bg-indigo-800 px-3 py-1 rounded-full"></span>
+                <button onclick="logout()" class="text-xs bg-red-500 hover:bg-red-600 px-3 py-1.5 rounded transition font-semibold">ඉවත් වන්න</button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content Area -->
+    <main class="flex-grow max-w-6xl w-full mx-auto px-4 py-8">
+
+        <!-- 1. AUTH SCREEN -->
+        <section id="auth-screen" class="max-w-md mx-auto bg-white rounded-xl shadow-lg p-8 border border-slate-100">
+            <div class="flex border-b mb-6">
+                <button id="tab-login-btn" onclick="switchAuthTab('login')" class="w-1/2 pb-2 font-bold text-indigo-600 border-b-2 border-indigo-600">පිවිසෙන්න (Login)</button>
+                <button id="tab-reg-btn" onclick="switchAuthTab('register')" class="w-1/2 pb-2 font-semibold text-slate-400 border-b-2 border-transparent">ලියාපදිංචි වන්න</button>
+            </div>
+
+            <!-- Login Form -->
+            <div id="login-container">
+                <div class="text-center mb-6">
+                    <h1 class="text-2xl font-bold text-slate-900">පද්ධතියට පිවිසෙන්න</h1>
+                    <p class="text-sm text-slate-500 mt-1">ඔබේ පරිශීලක නාමය සහ මුරපදය ලබා දෙන්න</p>
+                </div>
+                <form id="login-form" onsubmit="handleLogin(event)" class="space-y-4">
+                    <div>
+                        <label class="block text-sm font-medium text-slate-700 mb-1">පරිශීලක නාමය (Username)</label>
+                        <input type="text" id="login-username" required class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500 focus:outline-none" placeholder="පරිශීලක නාමය ඇතුළත් කරන්න">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-slate-700 mb-1">මුරපදය (Password)</label>
+                        <input type="password" id="login-password" required class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500 focus:outline-none" placeholder="මුරපදය ඇතුළත් කරන්න">
+                    </div>
+                    <button type="submit" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-2.5 rounded-lg transition shadow-md">ඇතුළු වන්න</button>
+                </form>
+            </div>
+
+            <!-- Register Form -->
+            <div id="register-container" class="hidden">
+                <div class="text-center mb-6">
+                    <h1 class="text-2xl font-bold text-slate-900">නව ගිණුමක් සාදාගන්න</h1>
+                    <p class="text-sm text-slate-500 mt-1">සිසුන් සඳහා ලියාපදිංචි වීම</p>
+                </div>
+                <form id="register-form" onsubmit="handleRegister(event)" class="space-y-4">
+                    <div>
+                        <label class="block text-sm font-medium text-slate-700 mb-1">නම / පරිශීලක නාමය (Username)</label>
+                        <input type="text" id="reg-username" required class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500 focus:outline-none" placeholder="ඔබේ නම">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-slate-700 mb-1">විද්‍යුත් තැපෑල (Email Address)</label>
+                        <input type="email" id="reg-email" required class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500 focus:outline-none" placeholder="example@mail.com">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-slate-700 mb-1">දුරකථන අංකය (Mobile Number)</label>
+                        <input type="tel" id="reg-phone" required class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500 focus:outline-none" placeholder="07X XXXXXXX">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-slate-700 mb-1">මුරපදය (Password)</label>
+                        <input type="password" id="reg-password" required class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500 focus:outline-none" placeholder="නව මුරපදයක් දෙන්න">
+                    </div>
+                    <button type="submit" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-semibold py-2.5 rounded-lg transition shadow-md">ලියාපදිංචි වන්න</button>
+                </form>
+            </div>
+        </section>
+
+        <!-- 2. DASHBOARD -->
+        <section id="dashboard-screen" class="hidden space-y-6">
+            <div class="flex flex-col md:flex-row justify-between items-start md:items-center bg-white p-6 rounded-xl shadow-sm border border-slate-100 gap-4">
+                <div>
+                    <h2 class="text-2xl font-bold text-slate-900">ප්‍රශ්න පත්‍ර ලැයිස්තුව</h2>
+                    <p class="text-sm text-slate-500">ශ්‍රේණිය සහ පාඩම අනුව තෝරා ප්‍රශ්න පත්‍ර සඳහා මුහුණ දෙන්න</p>
+                </div>
+                <div id="admin-action-area" class="hidden flex space-x-2">
+                    <button onclick="showAdminPanel()" class="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg text-sm font-semibold transition shadow">+ නව පත්‍රයක් එක් කරන්න</button>
+                    <button onclick="showResultsPanel()" class="bg-slate-800 hover:bg-slate-900 text-white px-4 py-2 rounded-lg text-sm font-semibold transition shadow">සිසුන්ගේ ප්‍රතිඵල වාර්තා</button>
+                </div>
+            </div>
+
+            <!-- Category Filter Bar -->
+            <div class="bg-white p-4 rounded-xl shadow-sm border flex flex-wrap gap-4 items-center">
+                <div class="flex items-center space-x-2">
+                    <span class="text-sm font-semibold text-slate-700">ශ්‍රේණිය:</span>
+                    <select id="filter-grade" onchange="renderPapersGrid()" class="border px-3 py-1.5 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500">
+                        <option value="ALL">සියලුම ශ්‍රේණි</option>
+                        <option value="Grade 5">Grade 5</option>
+                        <option value="Grade 6">Grade 6</option>
+                        <option value="Grade 7">Grade 7</option>
+                        <option value="Grade 8">Grade 8</option>
+                        <option value="Grade 9">Grade 9</option>
+                        <option value="Grade 10">Grade 10</option>
+                        <option value="Grade 11 (O/L)">Grade 11 (O/L)</option>
+                    </select>
+                </div>
+
+                <div class="flex items-center space-x-2">
+                    <span class="text-sm font-semibold text-slate-700">විෂය:</span>
+                    <select id="filter-category" onchange="renderPapersGrid()" class="border px-3 py-1.5 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500">
+                        <option value="ALL">සියලුම විෂයන්</option>
+                        <option value="Mathematics">Mathematics (ගණිතය)</option>
+                        <option value="Science">Science (විද්‍යාව)</option>
+                        <option value="General">General (සාමාන්‍ය දැනීම)</option>
+                    </select>
+                </div>
+            </div>
+
+            <div id="papers-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"></div>
+        </section>
+
+        <!-- 3. STUDENT PROFILE SECTION -->
+        <section id="profile-screen" class="hidden max-w-4xl mx-auto bg-white rounded-xl shadow-lg p-8 border border-slate-100 space-y-6">
+            <div class="flex justify-between items-center border-b pb-4">
+                <div>
+                    <h2 class="text-xl font-bold text-slate-900" id="profile-name-title">ශිෂ්‍ය පැතිකඩ</h2>
+                    <p class="text-xs text-slate-500">ඔබ මීට පෙර පෙනී සිටි විභාග සහ ලබාගත් ලකුණු ඉතිහාසය</p>
+                </div>
+                <button onclick="showDashboard()" class="text-sm text-indigo-600 hover:underline">&larr; ප්‍රධාන මෙනුවට</button>
+            </div>
+            <div class="overflow-x-auto">
+                <table class="w-full text-left border-collapse">
+                    <thead>
+                        <tr class="bg-slate-100 text-slate-700 text-sm">
+                            <th class="p-3 border">දිනය</th>
+                            <th class="p-3 border">ප්‍රශ්න පත්‍රය</th>
+                            <th class="p-3 border">ලකුණු</th>
+                            <th class="p-3 border">ප්‍රතිශතය</th>
+                        </tr>
+                    </thead>
+                    <tbody id="profile-table-body" class="text-sm text-slate-600"></tbody>
+                </table>
+            </div>
+        </section>
+
+        <!-- 4. ADMIN PANEL: Create / Edit Paper -->
+        <section id="admin-panel" class="hidden max-w-3xl mx-auto bg-white rounded-xl shadow-lg p-8 border border-slate-100 space-y-6">
+            <div class="flex justify-between items-center border-b pb-4">
+                <h2 id="admin-panel-title" class="text-xl font-bold text-slate-900">නව ප්‍රශ්න පත්‍රයක් සකස් කිරීම</h2>
+                <button onclick="showDashboard()" class="text-sm text-indigo-600 hover:underline">&larr; නැවත යාමට</button>
+            </div>
+
+            <form id="create-paper-form" onsubmit="savePaperData(event)" class="space-y-4">
+                <input type="hidden" id="editing-paper-id" value="">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-slate-700 mb-1">ශ්‍රේණිය (Grade)</label>
+                        <select id="paper-grade" required class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500">
+                            <option value="Grade 5">Grade 5</option>
+                            <option value="Grade 6">Grade 6</option>
+                            <option value="Grade 7">Grade 7</option>
+                            <option value="Grade 8">Grade 8</option>
+                            <option value="Grade 9" selected>Grade 9</option>
+                            <option value="Grade 10">Grade 10</option>
+                            <option value="Grade 11 (O/L)">Grade 11 (O/L)</option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-slate-700 mb-1">විෂය (Subject)</label>
+                        <select id="paper-category" required class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500">
+                            <option value="Mathematics">Mathematics (ගණිතය)</option>
+                            <option value="Science">Science (විද්‍යාව)</option>
+                            <option value="General">General (සාමාන්‍ය දැනීම)</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-slate-700 mb-1">පාඩමේ නම / Subcategory (Lesson Name)</label>
+                    <input type="text" id="paper-subcategory" required class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500" placeholder="උදා: වීජීය ප්‍රකාශන">
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-slate-700 mb-1">ප්‍රශ්න පත්‍රයේ මාතෘකාව</label>
+                    <input type="text" id="paper-title" required class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500" placeholder="උදා: Grade 9 Maths - වීජීය ප්‍රකාශන පත්‍රය">
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-slate-700 mb-1">අදාළ YouTube වීඩියෝ URL (Optional)</label>
+                        <input type="text" id="paper-video" class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500" placeholder="https://www.youtube.com/watch?v=...">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-slate-700 mb-1">කාල සීමාව (මිනිත්තු)</label>
+                        <input type="number" id="paper-duration" value="40" min="5" max="180" required class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500">
+                    </div>
+                </div>
+
+                <!-- Custom Question Builder Section -->
+                <div class="border-t pt-4 mt-6">
+                    <h3 class="font-bold text-slate-800 text-lg mb-2">ප්‍රශ්නයක් එකතු කිරීම</h3>
+                    <p class="text-xs text-slate-500 mb-4">ප්‍රශ්නය සඳහා රූපයක් උඩුගත කරන්න හෝ Image URL එකක් ලබා දෙන්න.</p>
+
+                    <div class="bg-slate-50 p-4 rounded-xl border space-y-3">
+                        <div>
+                            <label class="block text-sm font-semibold text-slate-700 mb-1">ප්‍රශ්න පෙළ (Question Text)</label>
+                            <textarea id="single-q-text" class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500 text-sm" rows="2" placeholder="ප්‍රශ්නය මෙහි සටහන් කරන්න..."></textarea>
+                        </div>
+
+                        <!-- Image Upload & URL Options -->
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-xs font-semibold text-slate-700 mb-1">රූපයක් උඩුගත කරන්න (Image File)</label>
+                                <input type="file" id="single-q-image" accept="image/*" class="w-full text-xs text-slate-500 file:mr-2 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-indigo-50 file:text-indigo-750 hover:file:bg-indigo-100">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-semibold text-slate-700 mb-1">හෝ Image URL එකක් දෙන්න</label>
+                                <input type="text" id="single-q-url" placeholder="https://example.com/image.png" class="w-full px-3 py-1.5 border rounded-lg text-sm">
+                            </div>
+                        </div>
+
+                        <!-- Options Input -->
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-2 pt-2">
+                            <input type="text" id="opt-0" placeholder="විකල්පය 1" class="px-3 py-1.5 border rounded-lg text-sm">
+                            <input type="text" id="opt-1" placeholder="විකල්පය 2" class="px-3 py-1.5 border rounded-lg text-sm">
+                            <input type="text" id="opt-2" placeholder="විකල්පය 3" class="px-3 py-1.5 border rounded-lg text-sm">
+                            <input type="text" id="opt-3" placeholder="විකල්පය 4" class="px-3 py-1.5 border rounded-lg text-sm">
+                        </div>
+
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-2 pt-2">
+                            <div>
+                                <label class="block text-xs font-semibold text-slate-700 mb-1">නිවැරදි පිළිතුර</label>
+                                <select id="correct-opt-idx" class="w-full px-3 py-1.5 border rounded-lg text-sm">
+                                    <option value="0">විකල්පය 1</option>
+                                    <option value="1">විකල්පය 2</option>
+                                    <option value="2">විකල්පය 3</option>
+                                    <option value="3">විකල්පය 4</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-xs font-semibold text-slate-700 mb-1">විස්තරාත්මක විසඳුම (Explanation)</label>
+                                <input type="text" id="single-q-exp" placeholder="විසඳුම පිළිබඳ විස්තරය" class="w-full px-3 py-1.5 border rounded-lg text-sm">
+                            </div>
+                        </div>
+
+                        <button type="button" onclick="addSingleQuestionToList()" class="w-full bg-slate-800 hover:bg-slate-900 text-white font-semibold py-2 rounded-lg text-sm transition">+ මෙම ප්‍රශ්නය ලැයිස්තුවට එකතු කරන්න</button>
+                    </div>
+
+                    <div class="mt-4 flex justify-between items-center">
+                        <span class="text-sm font-semibold text-slate-700">ප්‍රශ්න ලැයිස්තුව (එකතු කළ ගණන: <span id="added-q-count" class="font-bold text-indigo-600">0</span>)</span>
+                    </div>
+                    <!-- Added questions preview container -->
+                    <div id="preview-questions-list" class="mt-3 space-y-2 max-h-48 overflow-y-auto text-xs border p-2 rounded-lg bg-slate-50"></div>
+                </div>
+
+                <button type="submit" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-semibold py-2.5 rounded-lg transition shadow">ප්‍රශ්න පත්‍රය සුරකින්න / ප්‍රකාශයට පත් කරන්න</button>
+            </form>
+        </section>
+
+        <!-- 5. ADMIN PANEL: View Student Results -->
+        <section id="results-panel" class="hidden max-w-4xl mx-auto bg-white rounded-xl shadow-lg p-8 border border-slate-100 space-y-6">
+            <div class="flex justify-between items-center border-b pb-4">
+                <h2 class="text-xl font-bold text-slate-900">සිසුන්ගේ විභාග ප්‍රතිඵල වාර්තාව</h2>
+                <button onclick="showDashboard()" class="text-sm text-indigo-600 hover:underline">&larr; නැවත යාමට</button>
+            </div>
+            <div class="overflow-x-auto">
+                <table class="w-full text-left border-collapse">
+                    <thead>
+                        <tr class="bg-slate-100 text-slate-700 text-sm">
+                            <th class="p-3 border">දිනය හා වේලාව</th>
+                            <th class="p-3 border">ශිෂ්‍යයාගේ නම</th>
+                            <th class="p-3 border">ප්‍රශ්න පත්‍රය</th>
+                            <th class="p-3 border">ලකුණු</th>
+                            <th class="p-3 border">ප්‍රතිශතය</th>
+                        </tr>
+                    </thead>
+                    <tbody id="results-table-body" class="text-sm text-slate-600"></tbody>
+                </table>
+            </div>
+        </section>
+
+        <!-- 6. EXAM SCREEN -->
+        <section id="exam-screen" class="hidden space-y-6">
+            <div class="bg-white p-4 rounded-xl shadow-sm border flex justify-between items-center sticky top-4 z-10">
+                <div>
+                    <h3 id="active-paper-title" class="font-bold text-lg text-slate-800"></h3>
+                    <p class="text-xs text-indigo-600 font-semibold" id="active-paper-sub"></p>
+                </div>
+                <div class="bg-red-50 text-red-600 px-4 py-2 rounded-lg font-mono font-bold text-lg border border-red-200 flex items-center space-x-2">
+                    <svg class="w-5 h-5 animate-pulse" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                    <span id="timer-display">40:00</span>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-4 gap-6">
+                <div class="lg:col-span-3 space-y-6">
+                    <div id="video-container" class="hidden bg-black rounded-xl overflow-hidden shadow-md aspect-video">
+                        <iframe id="youtube-iframe" class="w-full h-full" src="" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+                    </div>
+
+                    <div class="bg-white rounded-xl shadow-sm border p-6 space-y-6">
+                        <div class="flex justify-between items-center border-b pb-4">
+                            <span id="q-number-badge" class="bg-indigo-100 text-indigo-700 font-bold px-3 py-1 rounded-full text-sm">ප්‍රශ්න අංක 01</span>
+                        </div>
+
+                        <!-- Image Box -->
+                        <div id="question-image-box" class="hidden mb-4">
+                            <img id="q-image" src="" alt="Question Image" class="max-h-72 rounded-lg mx-auto border shadow-sm object-contain bg-slate-50 p-1">
+                        </div>
+
+                        <div id="question-text" class="text-lg font-medium text-slate-900 min-h-[60px]"></div>
+                        <div id="options-container" class="space-y-3"></div>
+
+                        <div class="flex justify-between pt-6 border-t">
+                            <button onclick="prevQuestion()" class="px-5 py-2 border rounded-lg text-slate-600 hover:bg-slate-50 font-medium transition">&larr; පෙර ප්‍රශ්නය</button>
+                            <button id="next-btn" onclick="nextQuestion()" class="px-6 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 font-medium transition">මීළඟ &rarr;</button>
+                            <button id="submit-btn" onclick="confirmSubmit()" class="hidden px-6 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 font-bold transition shadow">විභාගය අවසන් කරන්න</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="bg-white rounded-xl shadow-sm border p-4 space-y-4 h-fit">
+                    <h4 class="font-bold text-sm text-slate-700 border-b pb-2">ප්‍රශ්න ජාලය</h4>
+                    <div id="q-grid-nav" class="grid grid-cols-5 gap-2 max-h-[380px] overflow-y-auto p-1"></div>
+                    <div class="text-xs text-slate-500 space-y-1 pt-2 border-t">
+                        <div class="flex items-center space-x-2"><span class="w-3 h-3 bg-emerald-500 rounded-sm inline-block"></span> <span>පිළිතුරු සපයා ඇත</span></div>
+                        <div class="flex items-center space-x-2"><span class="w-3 h-3 bg-slate-200 rounded-sm inline-block"></span> <span>ඉතිරි ප්‍රශ්න</span></div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 7. RESULT SCREEN -->
+        <section id="result-screen" class="hidden max-w-3xl mx-auto bg-white rounded-xl shadow-lg p-8 border border-slate-100 space-y-6">
+            <div id="printable-area" class="space-y-6">
+                <div class="text-center space-y-2 border-b pb-6">
+                    <div class="inline-flex p-3 bg-emerald-100 text-emerald-600 rounded-full mb-2">
+                        <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+                    </div>
+                    <h2 class="text-2xl font-bold text-slate-900">විභාගය සාර්ථකව අවසන් කරන ලදී!</h2>
+                    <p class="text-sm text-slate-500" id="result-paper-name"></p>
+                </div>
+
+                <div class="grid grid-cols-3 gap-4 text-center">
+                    <div class="bg-slate-50 p-4 rounded-xl border">
+                        <span class="block text-xs text-slate-500 uppercase font-semibold">ලකුණු සංඛ්‍යාව</span>
+                        <span id="res-score" class="text-3xl font-extrabold text-indigo-600">0 / 0</span>
+                    </div>
+                    <div class="bg-slate-50 p-4 rounded-xl border">
+                        <span class="block text-xs text-slate-500 uppercase font-semibold">ප්‍රතිශතය</span>
+                        <span id="res-percentage" class="text-3xl font-extrabold text-slate-800">0%</span>
+                    </div>
+                    <div class="bg-slate-50 p-4 rounded-xl border">
+                        <span class="block text-xs text-slate-500 uppercase font-semibold">ගත වූ කාලය</span>
+                        <span id="res-time" class="text-xl font-bold text-slate-800 mt-1 block">00:00</span>
+                    </div>
+                </div>
+
+                <div class="space-y-4 pt-4">
+                    <h3 class="font-bold text-slate-800">නිවැරදි පිළිතුරු විශ්ලේෂණය</h3>
+                    <div id="review-container" class="space-y-3 max-h-[350px] overflow-y-auto pr-2"></div>
+                </div>
+            </div>
+
+            <div class="flex justify-between pt-4 border-t">
+                <button onclick="window.print()" class="bg-slate-800 text-white px-5 py-2.5 rounded-lg font-semibold hover:bg-slate-900 transition flex items-center space-x-2">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/></svg>
+                    <span>PDF ලෙස Save/Print කරන්න</span>
+                </button>
+                <button onclick="showDashboard()" class="bg-indigo-600 text-white px-6 py-2.5 rounded-lg font-semibold hover:bg-indigo-700 transition">ප්‍රධාන මෙනුවට යන්න</button>
+            </div>
+        </section>
+
+    </main>
+
+    <footer class="bg-white border-t mt-auto py-4 text-center text-xs text-slate-500">
+        EDULK Online Exam Platform &copy; 2026. All rights reserved.
+    </footer>
+
+    <script>
+        const ADMIN_SECRET_PASSWORD = "admin123_edulk"; 
+
+        let currentUser = null;
+        let activePaper = null;
+        let currentQIndex = 0;
+        let studentAnswers = {};
+        let examTimer = null;
+        let examTimeLeft = 0;
+        let examElapsedSeconds = 0;
+        let createdQuestionsList = [];
+        let randomizedQuestions = [];
+
+        async function getSavedPapers() {
+            try {
+                const res = await fetch('/api/papers');
+                return await res.json();
+            } catch (err) {
+                console.error(err);
+                return [];
+            }
+        }
+
+        async function getSavedResults() {
+            try {
+                const res = await fetch('/api/results');
+                return await res.json();
+            } catch (err) {
+                console.error(err);
+                return [];
+            }
+        }
+
+        function shuffleArray(array) {
+            let shuffled = [...array];
+            for (let i = shuffled.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+            }
+            return shuffled;
+        }
+
+        function switchAuthTab(tab) {
+            const loginContainer = document.getElementById('login-container');
+            const registerContainer = document.getElementById('register-container');
+            const loginBtn = document.getElementById('tab-login-btn');
+            const regBtn = document.getElementById('tab-reg-btn');
+
+            if (tab === 'login') {
+                loginContainer.classList.remove('hidden');
+                registerContainer.classList.add('hidden');
+                loginBtn.className = "w-1/2 pb-2 font-bold text-indigo-600 border-b-2 border-indigo-600";
+                regBtn.className = "w-1/2 pb-2 font-semibold text-slate-400 border-b-2 border-transparent";
+            } else {
+                loginContainer.classList.add('hidden');
+                registerContainer.classList.remove('hidden');
+                regBtn.className = "w-1/2 pb-2 font-bold text-emerald-600 border-b-2 border-emerald-600";
+                loginBtn.className = "w-1/2 pb-2 font-semibold text-slate-400 border-b-2 border-transparent";
+            }
+        }
+
+        async function handleRegister(e) {
+            e.preventDefault();
+            const username = document.getElementById('reg-username').value.trim();
+            const email = document.getElementById('reg-email').value.trim();
+            const phone = document.getElementById('reg-phone').value.trim();
+            const password = document.getElementById('reg-password').value.trim();
+
+            if (!username || !email || !phone || !password) return;
+
+            if (password === ADMIN_SECRET_PASSWORD || username.toLowerCase() === 'admin') {
+                alert('මෙම පරිශීලක නාමය හෝ මුරපදය පද්ධතියේ පරිපාලක සඳහා වෙන් කර ඇත.');
+                return;
+            }
+
+            try {
+                const res = await fetch('/api/register', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username, email, phone, password })
+                });
+                const data = await res.json();
+                if (res.ok && data.success) {
+                    alert('ලියාපදිංචි වීම සාර්ථකයි! දැන් ඔබට පිවිසිය හැක.');
+                    document.getElementById('register-form').reset();
+                    switchAuthTab('login');
+                } else {
+                    alert(data.error || 'ලියාපදිංචි වීමේ දෝෂයක් සිදුවිය.');
+                }
+            } catch (err) {
+                alert('සර්වර් එක සම්බන්ධ කර ගැනීමට අපහසු විය.');
+            }
+        }
+
+        async function handleLogin(e) {
+            e.preventDefault();
+            const usernameInput = document.getElementById('login-username').value.trim();
+            const passwordInput = document.getElementById('login-password').value.trim();
+            if (!usernameInput || !passwordInput) return;
+
+            if (passwordInput === ADMIN_SECRET_PASSWORD) {
+                currentUser = { username: "පරිපාලක (Admin)", role: "admin" };
+                document.getElementById('profile-btn').classList.add('hidden');
+            } else {
+                try {
+                    const res = await fetch('/api/login', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ username: usernameInput, password: passwordInput })
+                    });
+                    const data = await res.json();
+                    if (res.ok && data.success) {
+                        currentUser = data.user;
+                        document.getElementById('profile-btn').classList.remove('hidden');
+                    } else {
+                        alert(data.error || 'වැරදි පරිශීලක නාමයකි හෝ මුරපදයකි!');
+                        return;
+                    }
+                } catch (err) {
+                    alert('සර්වර් එක සම්බන්ධ කර ගැනීමට අපහසු විය.');
+                    return;
+                }
+            }
+
+            document.getElementById('welcome-user').innerText = `${currentUser.username} (${currentUser.role === 'admin' ? 'ගුරුතුමා' : 'ශිෂ්‍යයා'})`;
+            document.getElementById('user-nav').classList.remove('hidden');
+            document.getElementById('auth-screen').classList.add('hidden');
+            document.getElementById('login-form').reset();
+            
+            showDashboard();
+        }
+
+        function logout() {
+            currentUser = null;
+            document.getElementById('user-nav').classList.add('hidden');
+            hideAllScreens();
+            document.getElementById('auth-screen').classList.remove('hidden');
+            switchAuthTab('login');
+            if(examTimer) clearInterval(examTimer);
+        }
+
+        function hideAllScreens() {
+            document.getElementById('auth-screen').classList.add('hidden');
+            document.getElementById('dashboard-screen').classList.add('hidden');
+            document.getElementById('admin-panel').classList.add('hidden');
+            document.getElementById('results-panel').classList.add('hidden');
+            document.getElementById('profile-screen').classList.add('hidden');
+            document.getElementById('exam-screen').classList.add('hidden');
+            document.getElementById('result-screen').classList.add('hidden');
+        }
+
+        function showDashboard() {
+            hideAllScreens();
+            document.getElementById('dashboard-screen').classList.remove('hidden');
+
+            const adminActionArea = document.getElementById('admin-action-area');
+            if(currentUser && currentUser.role === 'admin') {
+                adminActionArea.classList.remove('hidden');
+            } else {
+                adminActionArea.classList.add('hidden');
+            }
+
+            renderPapersGrid();
+        }
+
+        async function showStudentProfile() {
+            hideAllScreens();
+            document.getElementById('profile-screen').classList.remove('hidden');
+            document.getElementById('profile-name-title').innerText = `ශිෂ්‍ය පැතිකඩ: ${currentUser.username}`;
+
+            const allResults = await getSavedResults();
+            const results = allResults.filter(r => r.studentName === currentUser.username);
+            const tbody = document.getElementById('profile-table-body');
+            tbody.innerHTML = '';
+
+            if(results.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="4" class="p-4 text-center text-slate-400">ඔබ තවම කිසිදු විභාගයකට මුහුණ දී නැත.</td></tr>`;
+                return;
+            }
+
+            results.reverse().forEach(res => {
+                const tr = document.createElement('tr');
+                tr.className = "border-b hover:bg-slate-50";
+                tr.innerHTML = `
+                    <td class="p-3">${res.date}</td>
+                    <td class="p-3 font-medium text-slate-800">${res.paperTitle}</td>
+                    <td class="p-3 font-bold text-indigo-600">${res.score} / ${res.total}</td>
+                    <td class="p-3">${res.percentage}%</td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        async function renderPapersGrid() {
+            const papers = await getSavedPapers();
+            const selectedGrade = document.getElementById('filter-grade').value;
+            const selectedCategory = document.getElementById('filter-category').value;
+            const grid = document.getElementById('papers-grid');
+            grid.innerHTML = '';
+
+            const filteredPapers = papers.filter(paper => {
+                const matchGrade = (selectedGrade === 'ALL' || paper.grade === selectedGrade);
+                const matchCat = (selectedCategory === 'ALL' || paper.category === selectedCategory);
+                return matchGrade && matchCat;
+            });
+
+            if (filteredPapers.length === 0) {
+                grid.innerHTML = `<div class="col-span-full text-center py-12 text-slate-400">කිසිදු ප්‍රශ්න පත්‍රයක් සොයාගත නොහැකි විය.</div>`;
+                return;
+            }
+
+            filteredPapers.forEach(paper => {
+                const card = document.createElement('div');
+                card.className = "bg-white rounded-xl shadow-sm border p-6 flex flex-col justify-between space-y-4 hover:shadow-md transition";
+                
+                let adminButtonsHTML = '';
+                if (currentUser && currentUser.role === 'admin') {
+                    adminButtonsHTML = `
+                        <div class="flex items-center space-x-1">
+                            <button onclick="editPaper('${paper.id}')" class="text-xs bg-amber-100 text-amber-700 hover:bg-amber-200 px-2 py-1 rounded font-semibold transition">සංශෝධනය (Edit)</button>
+                            <button onclick="deletePaper('${paper.id}')" class="text-xs bg-red-100 text-red-600 hover:bg-red-200 px-2 py-1 rounded font-semibold transition">ඉවත් කරන්න</button>
+                        </div>
+                    `;
+                }
+
+                card.innerHTML = `
+                    <div class="space-y-2">
+                        <div class="flex justify-between items-center text-xs font-semibold">
+                            <span class="bg-indigo-50 text-indigo-600 px-2.5 py-1 rounded-md">${paper.grade}</span>
+                            <div class="flex items-center space-x-2">
+                                <span class="bg-amber-50 text-amber-600 px-2.5 py-1 rounded-md">${paper.category}</span>
+                                ${adminButtonsHTML}
+                            </div>
+                        </div>
+                        <h3 class="font-bold text-slate-900 text-lg leading-snug">${paper.title}</h3>
+                        <p class="text-xs text-slate-500 font-medium">පාඩම: ${paper.subcategory}</p>
+                    </div>
+
+                    <div class="space-y-3 pt-2 border-t">
+                        <div class="flex justify-between text-xs text-slate-500 font-medium">
+                            <span>ප්‍රශ්න: ${paper.questions ? paper.questions.length : 0}</span>
+                            <span>කාලය: මිනිත්තු ${paper.duration}</span>
+                        </div>
+                        <button onclick="startExam('${paper.id}')" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-2 rounded-lg text-sm transition shadow">විභාගය ආරම්භ කරන්න</button>
+                    </div>
+                `;
+                grid.appendChild(card);
+            });
+        }
+
+        async function deletePaper(paperId) {
+            if (confirm('මෙම ප්‍රශ්න පත්‍රය සම්පූර්ණයෙන්ම ඉවත් කිරීමට අවශ්‍ය බව තහවුරු කරන්න?')) {
+                try {
+                    await fetch(`/api/papers/${paperId}`, { method: 'DELETE' });
+                    renderPapersGrid();
+                    alert('ප්‍රශ්න පත්‍රය සාර්ථකව ඉවත් කරන ලදී.');
+                } catch(e) {
+                    alert('ඉවත් කිරීම අසාර්ථක විය.');
+                }
+            }
+        }
+
+        function showAdminPanel(paperToEdit = null) {
+            hideAllScreens();
+            document.getElementById('admin-panel').classList.remove('hidden');
+            
+            if (paperToEdit) {
+                document.getElementById('admin-panel-title').innerText = "ප්‍රශ්න පත්‍රය සංශෝධනය කිරීම (Edit Paper)";
+                document.getElementById('editing-paper-id').value = paperToEdit.id;
+                document.getElementById('paper-grade').value = paperToEdit.grade;
+                document.getElementById('paper-category').value = paperToEdit.category;
+                document.getElementById('paper-subcategory').value = paperToEdit.subcategory;
+                document.getElementById('paper-title').value = paperToEdit.title;
+                document.getElementById('paper-video').value = paperToEdit.videoUrl || '';
+                document.getElementById('paper-duration').value = paperToEdit.duration;
+                createdQuestionsList = [...paperToEdit.questions];
+            } else {
+                document.getElementById('admin-panel-title').innerText = "නව ප්‍රශ්න පත්‍රයක් සකස් කිරීම";
+                document.getElementById('editing-paper-id').value = '';
+                document.getElementById('create-paper-form').reset();
+                createdQuestionsList = [];
+            }
+            renderPreviewQuestionsList();
+        }
+
+        async function editPaper(paperId) {
+            const papers = await getSavedPapers();
+            const paper = papers.find(p => p.id === paperId);
+            if (paper) {
+                showAdminPanel(paper);
+            }
+        }
+
+        function addSingleQuestionToList() {
+            const qText = document.getElementById('single-q-text').value.trim();
+            const imageInput = document.getElementById('single-q-image');
+            const imageUrlField = document.getElementById('single-q-url').value.trim();
+            const opts = [
+                document.getElementById('opt-0').value.trim(),
+                document.getElementById('opt-1').value.trim(),
+                document.getElementById('opt-2').value.trim(),
+                document.getElementById('opt-3').value.trim()
+            ];
+            const correctAns = parseInt(document.getElementById('correct-opt-idx').value);
+            const exp = document.getElementById('single-q-exp').value.trim();
+
+            if (!qText || opts.some(o => !o)) {
+                alert('කරුණාකර ප්‍රශ්නය සහ විකල්ප 4ම සම්පූර්ණ කරන්න.');
+                return;
+            }
+
+            const processAdd = (imgSrc) => {
+                const newQ = {
+                    id: createdQuestionsList.length + 1,
+                    text: qText,
+                    imageUrl: imgSrc || "",
+                    options: opts,
+                    answer: correctAns,
+                    explanation: exp || "විස්තරාත්මක විසඳුම ලබා දී නොමැත."
+                };
+
+                createdQuestionsList.push(newQ);
+                renderPreviewQuestionsList();
+
+                document.getElementById('single-q-text').value = '';
+                document.getElementById('single-q-image').value = '';
+                document.getElementById('single-q-url').value = '';
+                document.getElementById('opt-0').value = '';
+                document.getElementById('opt-1').value = '';
+                document.getElementById('opt-2').value = '';
+                document.getElementById('opt-3').value = '';
+                document.getElementById('single-q-exp').value = '';
+            };
+
+            if (imageInput.files && imageInput.files[0]) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    processAdd(e.target.result);
+                };
+                reader.readAsDataURL(imageInput.files[0]);
+            } else if (imageUrlField !== "") {
+                processAdd(imageUrlField);
+            } else {
+                processAdd("");
+            }
+        }
+
+        function renderPreviewQuestionsList() {
+            const container = document.getElementById('preview-questions-list');
+            document.getElementById('added-q-count').innerText = createdQuestionsList.length;
+            container.innerHTML = '';
+
+            if (createdQuestionsList.length === 0) {
+                container.innerHTML = `<p class="text-slate-400 text-center py-2">තවම ප්‍රශ්න එකතු කර නැත.</p>`;
+                return;
+            }
+
+            createdQuestionsList.forEach((q, idx) => {
+                const div = document.createElement('div');
+                div.className = "flex justify-between items-center bg-white p-2 border rounded shadow-xs";
+                div.innerHTML = `
+                    <span class="font-medium text-slate-800">ප්‍රශ්නය ${idx + 1}: ${q.text.substring(0, 40)}...</span>
+                    <button type="button" onclick="removeQuestionFromList(${idx})" class="text-red-500 hover:text-red-700 font-semibold text-xs px-2 py-1">ඉවත් කරන්න</button>
+                `;
+                container.appendChild(div);
+            });
+        }
+
+        function removeQuestionFromList(idx) {
+            createdQuestionsList.splice(idx, 1);
+            createdQuestionsList.forEach((q, i) => q.id = i + 1);
+            renderPreviewQuestionsList();
+        }
+
+        async function savePaperData(e) {
+            e.preventDefault();
+            if (createdQuestionsList.length === 0) {
+                alert('ප්‍රශ්න පත්‍රයට අවම වශයෙන් එක් ප්‍රශ්නයක්වත් එකතු කරන්න.');
+                return;
+            }
+
+            const editingId = document.getElementById('editing-paper-id').value;
+            const grade = document.getElementById('paper-grade').value;
+            const category = document.getElementById('paper-category').value;
+            const subcategory = document.getElementById('paper-subcategory').value.trim();
+            const title = document.getElementById('paper-title').value.trim();
+            const videoUrl = document.getElementById('paper-video').value.trim();
+            const duration = parseInt(document.getElementById('paper-duration').value);
+
+            const paperPayload = {
+                id: editingId || ('paper_' + Date.now()),
+                grade,
+                category,
+                subcategory,
+                title,
+                videoUrl,
+                duration,
+                questions: createdQuestionsList
+            };
+
+            try {
+                const res = await fetch('/api/papers', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(paperPayload)
+                });
+                if(res.ok) {
+                    alert('ප්‍රශ්න පත්‍රය සාර්ථකව සුරකින ලදී!');
+                    showDashboard();
+                } else {
+                    alert('ප්‍රශ්න පත්‍රය සුරැකීමේදී දෝෂයක් සිදු විය.');
+                }
+            } catch(err) {
+                alert('සර්වර් දෝෂයකි.');
+            }
+        }
+
+        async function showResultsPanel() {
+            hideAllScreens();
+            document.getElementById('results-panel').classList.remove('hidden');
+            const results = await getSavedResults();
+            const tbody = document.getElementById('results-table-body');
+            tbody.innerHTML = '';
+
+            if (results.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="5" class="p-4 text-center text-slate-400">තවම කිසිදු ප්‍රතිඵල වාර්තාවක් නොමැත.</td></tr>`;
+                return;
+            }
+
+            results.reverse().forEach(res => {
+                const tr = document.createElement('tr');
+                tr.className = "border-b hover:bg-slate-50";
+                tr.innerHTML = `
+                    <td class="p-3">${res.date}</td>
+                    <td class="p-3 font-semibold text-slate-800">${res.studentName}</td>
+                    <td class="p-3 font-medium">${res.paperTitle}</td>
+                    <td class="p-3 font-bold text-indigo-600">${res.score} / ${res.total}</td>
+                    <td class="p-3">${res.percentage}%</td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        async function startExam(paperId) {
+            const papers = await getSavedPapers();
+            activePaper = papers.find(p => p.id === paperId);
+            if (!activePaper) return;
+
+            hideAllScreens();
+            document.getElementById('exam-screen').classList.remove('hidden');
+
+            document.getElementById('active-paper-title').innerText = activePaper.title;
+            document.getElementById('active-paper-sub').innerText = `${activePaper.grade} | ${activePaper.category} - ${activePaper.subcategory}`;
+
+            const videoContainer = document.getElementById('video-container');
+            if (activePaper.videoUrl) {
+                let embedUrl = activePaper.videoUrl.replace("watch?v=", "embed/");
+                document.getElementById('youtube-iframe').src = embedUrl;
+                videoContainer.classList.remove('hidden');
+            } else {
+                videoContainer.classList.add('hidden');
+            }
+
+            randomizedQuestions = activePaper.questions.map(q => {
+                let optionsWithIndex = q.options.map((opt, idx) => ({ text: opt, originalIndex: idx }));
+                let shuffledOptions = shuffleArray(optionsWithIndex);
+                let newAnswerIndex = shuffledOptions.findIndex(item => item.originalIndex === q.answer);
+
+                return {
+                    ...q,
+                    options: shuffledOptions.map(item => item.text),
+                    answer: newAnswerIndex
+                };
+            });
+
+            currentQIndex = 0;
+            studentAnswers = {};
+            examElapsedSeconds = 0;
+            examTimeLeft = activePaper.duration * 60;
+
+            renderQuestionGridNav();
+            loadQuestion(currentQIndex);
+            startTimer();
+        }
+
+        function startTimer() {
+            if (examTimer) clearInterval(examTimer);
+            updateTimerDisplay();
+
+            examTimer = setInterval(() => {
+                examTimeLeft--;
+                examElapsedSeconds++;
+                updateTimerDisplay();
+
+                if (examTimeLeft <= 0) {
+                    clearInterval(examTimer);
+                    alert('විභාග කාලය අවසන් විය!');
+                    submitExam();
+                }
+            }, 1000);
+        }
+
+        function updateTimerDisplay() {
+            const minutes = Math.floor(examTimeLeft / 60);
+            const seconds = examTimeLeft % 60;
+            document.getElementById('timer-display').innerText = 
+                `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+        }
+
+        function renderQuestionGridNav() {
+            const navGrid = document.getElementById('q-grid-nav');
+            navGrid.innerHTML = '';
+
+            randomizedQuestions.forEach((q, idx) => {
+                const btn = document.createElement('button');
+                btn.id = `grid-q-${idx}`;
+                btn.className = `p-2 rounded font-bold text-xs text-center border transition ${
+                    studentAnswers[idx] !== undefined ? 'bg-emerald-500 text-white border-emerald-600' : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+                }`;
+                btn.innerText = (idx + 1).toString().padStart(2, '0');
+                btn.onclick = () => jumpToQuestion(idx);
+                navGrid.appendChild(btn);
+            });
+        }
+
+        function loadQuestion(index) {
+            currentQIndex = index;
+            const q = randomizedQuestions[index];
+
+            document.getElementById('q-number-badge').innerText = `ප්‍රශ්න අංක ${index + 1} / ${randomizedQuestions.length}`;
+            document.getElementById('question-text').innerText = q.text;
+
+            const imgBox = document.getElementById('question-image-box');
+            const qImg = document.getElementById('q-image');
+            if (q.imageUrl && q.imageUrl !== "") {
+                qImg.src = q.imageUrl;
+                imgBox.classList.remove('hidden');
+            } else {
+                imgBox.classList.add('hidden');
+            }
+
+            const optsContainer = document.getElementById('options-container');
+            optsContainer.innerHTML = '';
+
+            q.options.forEach((optText, oIdx) => {
+                const isSelected = studentAnswers[index] === oIdx;
+                const div = document.createElement('div');
+                div.className = `p-3.5 border rounded-lg cursor-pointer transition flex items-center space-x-3 ${
+                    isSelected ? 'border-indigo-600 bg-indigo-50 font-semibold text-indigo-900' : 'hover:bg-slate-50 border-slate-200'
+                }`;
+                div.onclick = () => selectOption(index, oIdx);
+                div.innerHTML = `
+                    <div class="w-5 h-5 rounded-full border flex items-center justify-center text-xs ${isSelected ? 'border-indigo-600 bg-indigo-600 text-white' : 'border-slate-400'}">
+                        ${String.fromCharCode(65 + oIdx)}
+                    </div>
+                    <span class="text-sm">${optText}</span>
+                `;
+                optsContainer.appendChild(div);
+            });
+
+            const nextBtn = document.getElementById('next-btn');
+            const submitBtn = document.getElementById('submit-btn');
+            if (index === randomizedQuestions.length - 1) {
+                nextBtn.classList.add('hidden');
+                submitBtn.classList.remove('hidden');
+            } else {
+                nextBtn.classList.remove('hidden');
+                submitBtn.classList.add('hidden');
+            }
+
+            highlightNavGrid();
+        }
+
+        function selectOption(qIdx, optIdx) {
+            studentAnswers[qIdx] = optIdx;
+            loadQuestion(qIdx);
+            renderQuestionGridNav();
+        }
+
+        function jumpToQuestion(idx) {
+            loadQuestion(idx);
+        }
+
+        function prevQuestion() {
+            if (currentQIndex > 0) loadQuestion(currentQIndex - 1);
+        }
+
+        function nextQuestion() {
+            if (currentQIndex < randomizedQuestions.length - 1) loadQuestion(currentQIndex + 1);
+        }
+
+        function highlightNavGrid() {
+            randomizedQuestions.forEach((_, idx) => {
+                const btn = document.getElementById(`grid-q-${idx}`);
+                if (btn) {
+                    if (idx === currentQIndex) {
+                        btn.classList.add('ring-2', 'ring-indigo-500');
+                    } else {
+                        btn.classList.remove('ring-2', 'ring-indigo-500');
+                    }
+                }
+            });
+        }
+
+        function confirmSubmit() {
+            if (confirm('ඔබට විභාගය අවසන් කිරීමට අවශ්‍ය බව තහවුරු කරන්න?')) {
+                submitExam();
+            }
+        }
+
+        async function submitExam() {
+            if (examTimer) clearInterval(examTimer);
+
+            let score = 0;
+            const total = randomizedQuestions.length;
+
+            randomizedQuestions.forEach((q, idx) => {
+                if (studentAnswers[idx] === q.answer) {
+                    score++;
+                }
+            });
+
+            const percentage = Math.round((score / total) * 100);
+            const elapsedMin = Math.floor(examElapsedSeconds / 60);
+            const elapsedSec = examElapsedSeconds % 60;
+            const timeFormatted = `${elapsedMin.toString().padStart(2, '0')}:${elapsedSec.toString().padStart(2, '0')}`;
+
+            const newResult = {
+                studentName: currentUser ? currentUser.username : "අඥාත ශිෂ්‍යයා",
+                paperTitle: activePaper.title,
+                score,
+                total,
+                percentage,
+                date: new Date().toLocaleDateString('si-LK') + ' ' + new Date().toLocaleTimeString('si-LK', {hour: '2-digit', minute:'2-digit'})
+            };
+
+            try {
+                await fetch('/api/results', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(newResult)
+                });
+            } catch(e) {
+                console.error("Result save error", e);
+            }
+
+            hideAllScreens();
+            document.getElementById('result-screen').classList.remove('hidden');
+
+            document.getElementById('result-paper-name').innerText = activePaper.title;
+            document.getElementById('res-score').innerText = `${score} / ${total}`;
+            document.getElementById('res-percentage').innerText = `${percentage}%`;
+            document.getElementById('res-time').innerText = timeFormatted;
+
+            const reviewContainer = document.getElementById('review-container');
+            reviewContainer.innerHTML = '';
+
+            randomizedQuestions.forEach((q, idx) => {
+                const userAns = studentAnswers[idx];
+                const isCorrect = userAns === q.answer;
+
+                const div = document.createElement('div');
+                div.className = `p-4 rounded-lg border text-sm space-y-2 ${isCorrect ? 'bg-emerald-50 border-emerald-200' : 'bg-red-50 border-red-200'}`;
+                div.innerHTML = `
+                    <div class="font-bold flex items-center justify-between">
+                        <span>ප්‍රශ්නය ${idx + 1}: ${q.text}</span>
+                        <span class="${isCorrect ? 'text-emerald-700' : 'text-red-700'}">${isCorrect ? '✓ නිවැරදියි' : '✗ වැරදියි'}</span>
+                    </div>
+                    ${q.imageUrl ? `<img src="${q.imageUrl}" class="max-h-32 rounded border my-1">` : ''}
+                    <div class="text-xs text-slate-600">
+                        <div>ඔබේ පිළිතුර: <span class="font-semibold">${userAns !== undefined ? q.options[userAns] : 'පිළිතුරු සපයා නැත'}</span></div>
+                        <div>නිවැරදි පිළිතුර: <span class="font-semibold text-emerald-800">${q.options[q.answer]}</span></div>
+                        <div class="mt-1 text-slate-500 italic">විසඳුම: ${q.explanation}</div>
+                    </div>
+                `;
+                reviewContainer.appendChild(div);
+            });
+        }
+    </script>
+</body>
+</html>

@@ -216,7 +216,7 @@
 
                 <!-- Custom Question Builder Section -->
                 <div class="border-t pt-4 mt-6">
-                    <h3 class="font-bold text-slate-800 text-lg mb-2">ප්‍රශ්නයක් එකතු කිරීම</h3>
+                    <h3 class="font-bold text-slate-800 text-lg mb-2">ප්‍රශ්නයක් එකතු කිරීම / වෙනස් කිරීම</h3>
                     <p class="text-xs text-slate-500 mb-4">ප්‍රශ්නය සඳහා රූපයක් උඩුගත කරන්න හෝ Image URL එකක් ලබා දෙන්න.</p>
 
                     <div class="bg-slate-50 p-4 rounded-xl border space-y-3">
@@ -225,7 +225,7 @@
                             <textarea id="single-q-text" class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500 text-sm" rows="2" placeholder="ප්‍රශ්නය මෙහි සටහන් කරන්න..."></textarea>
                         </div>
 
-                        <!-- Image Upload & URL Options -->
+                        <!-- Image URL Options -->
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div>
                                 <label class="block text-xs font-semibold text-slate-700 mb-1">රූපයක් උඩුගත කරන්න (Image File)</label>
@@ -267,7 +267,7 @@
                     <div class="mt-4 flex justify-between items-center">
                         <span class="text-sm font-semibold text-slate-700">ප්‍රශ්න ලැයිස්තුව (එකතු කළ ගණන: <span id="added-q-count" class="font-bold text-indigo-600">0</span>)</span>
                     </div>
-                    <!-- Added questions preview container -->
+                    <!-- Added questions preview container with Edit & Delete support -->
                     <div id="preview-questions-list" class="mt-3 space-y-2 max-h-48 overflow-y-auto text-xs border p-2 rounded-lg bg-slate-50"></div>
                 </div>
 
@@ -407,6 +407,7 @@
         let examElapsedSeconds = 0;
         let createdQuestionsList = [];
         let randomizedQuestions = [];
+        let editingQuestionIndex = null; // ප්‍රශ්න සංස්කරණය කිරීමට අවශ්‍ය විචල්‍යය
 
         async function getSavedPapers() {
             try {
@@ -498,509 +499,246 @@
             if (passwordInput === ADMIN_SECRET_PASSWORD) {
                 currentUser = { username: "පරිපාලක (Admin)", role: "admin" };
                 document.getElementById('profile-btn').classList.add('hidden');
-            } else {
-                try {
-                    const res = await fetch('/api/login', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ username: usernameInput, password: passwordInput })
-                    });
-                    const data = await res.json();
-                    if (res.ok && data.success) {
-                        currentUser = data.user;
-                        document.getElementById('profile-btn').classList.remove('hidden');
-                    } else {
-                        alert(data.error || 'වැරදි පරිශීලක නාමයකි හෝ මුරපදයකි!');
-                        return;
-                    }
-                } catch (err) {
-                    alert('සර්වර් එක සම්බන්ධ කර ගැනීමට අපහසු විය.');
-                    return;
-                }
+                document.getElementById('admin-action-area').classList.remove('hidden');
+                document.getElementById('welcome-user').innerText = currentUser.username;
+                document.getElementById('user-nav').classList.remove('hidden');
+                document.getElementById('auth-screen').classList.add('hidden');
+                showDashboard();
+                return;
             }
 
-            document.getElementById('welcome-user').innerText = `${currentUser.username} (${currentUser.role === 'admin' ? 'ගුරුතුමා' : 'ශිෂ්‍යයා'})`;
-            document.getElementById('user-nav').classList.remove('hidden');
-            document.getElementById('auth-screen').classList.add('hidden');
-            document.getElementById('login-form').reset();
-            
-            showDashboard();
+            try {
+                const res = await fetch('/api/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username: usernameInput, password: passwordInput })
+                });
+                const data = await res.json();
+                if (res.ok && data.success) {
+                    currentUser = { username: data.username, role: "student" };
+                    document.getElementById('profile-btn').classList.remove('hidden');
+                    document.getElementById('admin-action-area').classList.add('hidden');
+                    document.getElementById('welcome-user').innerText = currentUser.username;
+                    document.getElementById('user-nav').classList.remove('hidden');
+                    document.getElementById('auth-screen').classList.add('hidden');
+                    showDashboard();
+                } else {
+                    alert(data.error || 'පරිශීලක නාමය හෝ මුරපදය වැරදිය.');
+                }
+            } catch (err) {
+                if (usernameInput && passwordInput) {
+                    currentUser = { username: usernameInput, role: "student" };
+                    document.getElementById('profile-btn').classList.remove('hidden');
+                    document.getElementById('admin-action-area').classList.add('hidden');
+                    document.getElementById('welcome-user').innerText = currentUser.username;
+                    document.getElementById('user-nav').classList.remove('hidden');
+                    document.getElementById('auth-screen').classList.add('hidden');
+                    showDashboard();
+                } else {
+                    alert('පිවිසීමේ දෝෂයක් සිදුවිය.');
+                }
+            }
         }
 
         function logout() {
             currentUser = null;
             document.getElementById('user-nav').classList.add('hidden');
-            hideAllScreens();
-            document.getElementById('auth-screen').classList.remove('hidden');
-            switchAuthTab('login');
-            if(examTimer) clearInterval(examTimer);
-        }
-
-        function hideAllScreens() {
-            document.getElementById('auth-screen').classList.add('hidden');
             document.getElementById('dashboard-screen').classList.add('hidden');
+            document.getElementById('profile-screen').classList.add('hidden');
             document.getElementById('admin-panel').classList.add('hidden');
             document.getElementById('results-panel').classList.add('hidden');
-            document.getElementById('profile-screen').classList.add('hidden');
             document.getElementById('exam-screen').classList.add('hidden');
-            document.getElementById('result-screen').classList.add('hidden');
+            document.getElementById('auth-screen').classList.remove('hidden');
+            document.getElementById('login-form').reset();
         }
 
         function showDashboard() {
-            hideAllScreens();
+            if (!currentUser) return;
+            document.getElementById('auth-screen').classList.add('hidden');
+            document.getElementById('profile-screen').classList.add('hidden');
+            document.getElementById('admin-panel').classList.add('hidden');
+            document.getElementById('results-panel').classList.add('hidden');
+            document.getElementById('exam-screen').classList.add('hidden');
+            document.getElementById('result-screen').classList.add('hidden');
             document.getElementById('dashboard-screen').classList.remove('hidden');
-
-            const adminActionArea = document.getElementById('admin-action-area');
-            if(currentUser && currentUser.role === 'admin') {
-                adminActionArea.classList.remove('hidden');
-            } else {
-                adminActionArea.classList.add('hidden');
-            }
-
             renderPapersGrid();
         }
 
-        async function showStudentProfile() {
-            hideAllScreens();
-            document.getElementById('profile-screen').classList.remove('hidden');
-            document.getElementById('profile-name-title').innerText = `ශිෂ්‍ය පැතිකඩ: ${currentUser.username}`;
+        async function renderPapersGrid() {
+            const grid = document.getElementById('papers-grid');
+            const gradeFilter = document.getElementById('filter-grade').value;
+            const categoryFilter = document.getElementById('filter-category').value;
 
-            const allResults = await getSavedResults();
-            const results = allResults.filter(r => r.studentName === currentUser.username);
-            const tbody = document.getElementById('profile-table-body');
-            tbody.innerHTML = '';
-
-            if(results.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="4" class="p-4 text-center text-slate-400">ඔබ තවම කිසිදු විභාගයකට මුහුණ දී නැත.</td></tr>`;
-                return;
+            let papers = await getSavedPapers();
+            
+            if (!papers || papers.length === 0) {
+                papers = [
+                    {
+                        id: 1,
+                        grade: "Grade 9",
+                        category: "Mathematics",
+                        subcategory: "වීජීය ප්‍රකාශන",
+                        title: "Grade 9 Maths - වීජීය ප්‍රකාශන අභ්‍යාස පත්‍රය",
+                        duration: 30,
+                        video: "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
+                        questions: [
+                            { text: "x + 2 = 7 නම්, x හි අගය කොපමණද?", options: ["3", "5", "7", "9"], correct: 1, explanation: "x = 7 - 2 = 5 වේ." }
+                        ]
+                    }
+                ];
             }
 
-            results.reverse().forEach(res => {
-                const tr = document.createElement('tr');
-                tr.className = "border-b hover:bg-slate-50";
-                tr.innerHTML = `
-                    <td class="p-3">${res.date}</td>
-                    <td class="p-3 font-medium text-slate-800">${res.paperTitle}</td>
-                    <td class="p-3 font-bold text-indigo-600">${res.score} / ${res.total}</td>
-                    <td class="p-3">${res.percentage}%</td>
-                `;
-                tbody.appendChild(tr);
-            });
-        }
-
-        async function renderPapersGrid() {
-            const papers = await getSavedPapers();
-            const selectedGrade = document.getElementById('filter-grade').value;
-            const selectedCategory = document.getElementById('filter-category').value;
-            const grid = document.getElementById('papers-grid');
-            grid.innerHTML = '';
-
-            const filteredPapers = papers.filter(paper => {
-                const matchGrade = (selectedGrade === 'ALL' || paper.grade === selectedGrade);
-                const matchCat = (selectedCategory === 'ALL' || paper.category === selectedCategory);
+            const filtered = papers.filter(p => {
+                const matchGrade = (gradeFilter === 'ALL' || p.grade === gradeFilter);
+                const matchCat = (categoryFilter === 'ALL' || p.category === categoryFilter);
                 return matchGrade && matchCat;
             });
 
-            if (filteredPapers.length === 0) {
-                grid.innerHTML = `<div class="col-span-full text-center py-12 text-slate-400">කිසිදු ප්‍රශ්න පත්‍රයක් සොයාගත නොහැකි විය.</div>`;
+            grid.innerHTML = '';
+            if (filtered.length === 0) {
+                grid.innerHTML = `<div class="col-span-full text-center py-10 text-slate-400">මෙම තේරීමට අදාළ ප්‍රශ්න පත්‍ර හමු නොවීය.</div>`;
                 return;
             }
 
-            filteredPapers.forEach(paper => {
+            filtered.forEach(p => {
                 const card = document.createElement('div');
-                card.className = "bg-white rounded-xl shadow-sm border p-6 flex flex-col justify-between space-y-4 hover:shadow-md transition";
-                
-                let adminButtonsHTML = '';
-                if (currentUser && currentUser.role === 'admin') {
-                    adminButtonsHTML = `
-                        <div class="flex items-center space-x-1">
-                            <button onclick="editPaper('${paper.id}')" class="text-xs bg-amber-100 text-amber-700 hover:bg-amber-200 px-2 py-1 rounded font-semibold transition">සංශෝධනය (Edit)</button>
-                            <button onclick="deletePaper('${paper.id}')" class="text-xs bg-red-100 text-red-600 hover:bg-red-200 px-2 py-1 rounded font-semibold transition">ඉවත් කරන්න</button>
-                        </div>
-                    `;
-                }
-
+                card.className = "bg-white rounded-xl shadow-sm border p-6 flex flex-col justify-between hover:shadow-md transition space-y-4";
                 card.innerHTML = `
-                    <div class="space-y-2">
-                        <div class="flex justify-between items-center text-xs font-semibold">
-                            <span class="bg-indigo-50 text-indigo-600 px-2.5 py-1 rounded-md">${paper.grade}</span>
-                            <div class="flex items-center space-x-2">
-                                <span class="bg-amber-50 text-amber-600 px-2.5 py-1 rounded-md">${paper.category}</span>
-                                ${adminButtonsHTML}
-                            </div>
+                    <div>
+                        <div class="flex justify-between items-start mb-2">
+                            <span class="text-xs font-bold bg-indigo-50 text-indigo-600 px-2.5 py-1 rounded-md">${p.grade}</span>
+                            <span class="text-xs text-slate-500 font-medium">${p.category}</span>
                         </div>
-                        <h3 class="font-bold text-slate-900 text-lg leading-snug">${paper.title}</h3>
-                        <p class="text-xs text-slate-500 font-medium">පාඩම: ${paper.subcategory}</p>
+                        <h4 class="font-bold text-slate-900 text-lg mb-1">${p.title}</h4>
+                        <p class="text-xs text-slate-500">පාඩම: ${p.subcategory || 'සාමාන්‍ය'}</p>
                     </div>
-
-                    <div class="space-y-3 pt-2 border-t">
-                        <div class="flex justify-between text-xs text-slate-500 font-medium">
-                            <span>ප්‍රශ්න: ${paper.questions ? paper.questions.length : 0}</span>
-                            <span>කාලය: මිනිත්තු ${paper.duration}</span>
-                        </div>
-                        <button onclick="startExam('${paper.id}')" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-2 rounded-lg text-sm transition shadow">විභාගය ආරම්භ කරන්න</button>
+                    <div class="flex justify-between items-center pt-4 border-t text-xs text-slate-600">
+                        <span> කාලය: විනාඩි ${p.duration || 40}</span>
+                        <span>ප්‍රශ්න: ${p.questions ? p.questions.length : 0}</span>
                     </div>
+                    <button onclick='startExam(${JSON.stringify(p)})' class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-2 rounded-lg transition text-sm shadow">විභාගයට මුහුණ දෙන්න</button>
                 `;
                 grid.appendChild(card);
             });
         }
 
-        async function deletePaper(paperId) {
-            if (confirm('මෙම ප්‍රශ්න පත්‍රය සම්පූර්ණයෙන්ම ඉවත් කිරීමට අවශ්‍ය බව තහවුරු කරන්න?')) {
-                try {
-                    await fetch(`/api/papers/${paperId}`, { method: 'DELETE' });
-                    renderPapersGrid();
-                    alert('ප්‍රශ්න පත්‍රය සාර්ථකව ඉවත් කරන ලදී.');
-                } catch(e) {
-                    alert('ඉවත් කිරීම අසාර්ථක විය.');
-                }
-            }
-        }
+        function startExam(paper) {
+            activePaper = paper;
+            currentQIndex = 0;
+            studentAnswers = {};
+            randomizedQuestions = shuffleArray(paper.questions || []);
+            examTimeLeft = (paper.duration || 40) * 60;
+            examElapsedSeconds = 0;
 
-        function showAdminPanel(paperToEdit = null) {
-            hideAllScreens();
-            document.getElementById('admin-panel').classList.remove('hidden');
-            
-            if (paperToEdit) {
-                document.getElementById('admin-panel-title').innerText = "ප්‍රශ්න පත්‍රය සංශෝධනය කිරීම (Edit Paper)";
-                document.getElementById('editing-paper-id').value = paperToEdit.id;
-                document.getElementById('paper-grade').value = paperToEdit.grade;
-                document.getElementById('paper-category').value = paperToEdit.category;
-                document.getElementById('paper-subcategory').value = paperToEdit.subcategory;
-                document.getElementById('paper-title').value = paperToEdit.title;
-                document.getElementById('paper-video').value = paperToEdit.videoUrl || '';
-                document.getElementById('paper-duration').value = paperToEdit.duration;
-                createdQuestionsList = [...paperToEdit.questions];
-            } else {
-                document.getElementById('admin-panel-title').innerText = "නව ප්‍රශ්න පත්‍රයක් සකස් කිරීම";
-                document.getElementById('editing-paper-id').value = '';
-                document.getElementById('create-paper-form').reset();
-                createdQuestionsList = [];
-            }
-            renderPreviewQuestionsList();
-        }
-
-        async function editPaper(paperId) {
-            const papers = await getSavedPapers();
-            const paper = papers.find(p => p.id === paperId);
-            if (paper) {
-                showAdminPanel(paper);
-            }
-        }
-
-        function addSingleQuestionToList() {
-            const qText = document.getElementById('single-q-text').value.trim();
-            const imageInput = document.getElementById('single-q-image');
-            const imageUrlField = document.getElementById('single-q-url').value.trim();
-            const opts = [
-                document.getElementById('opt-0').value.trim(),
-                document.getElementById('opt-1').value.trim(),
-                document.getElementById('opt-2').value.trim(),
-                document.getElementById('opt-3').value.trim()
-            ];
-            const correctAns = parseInt(document.getElementById('correct-opt-idx').value);
-            const exp = document.getElementById('single-q-exp').value.trim();
-
-            if (!qText || opts.some(o => !o)) {
-                alert('කරුණාකර ප්‍රශ්නය සහ විකල්ප 4ම සම්පූර්ණ කරන්න.');
-                return;
-            }
-
-            const processAdd = (imgSrc) => {
-                const newQ = {
-                    id: createdQuestionsList.length + 1,
-                    text: qText,
-                    imageUrl: imgSrc || "",
-                    options: opts,
-                    answer: correctAns,
-                    explanation: exp || "විස්තරාත්මක විසඳුම ලබා දී නොමැත."
-                };
-
-                createdQuestionsList.push(newQ);
-                renderPreviewQuestionsList();
-
-                document.getElementById('single-q-text').value = '';
-                document.getElementById('single-q-image').value = '';
-                document.getElementById('single-q-url').value = '';
-                document.getElementById('opt-0').value = '';
-                document.getElementById('opt-1').value = '';
-                document.getElementById('opt-2').value = '';
-                document.getElementById('opt-3').value = '';
-                document.getElementById('single-q-exp').value = '';
-            };
-
-            if (imageInput.files && imageInput.files[0]) {
-                const reader = new FileReader();
-                reader.onload = function(e) {
-                    processAdd(e.target.result);
-                };
-                reader.readAsDataURL(imageInput.files[0]);
-            } else if (imageUrlField !== "") {
-                processAdd(imageUrlField);
-            } else {
-                processAdd("");
-            }
-        }
-
-        function renderPreviewQuestionsList() {
-            const container = document.getElementById('preview-questions-list');
-            document.getElementById('added-q-count').innerText = createdQuestionsList.length;
-            container.innerHTML = '';
-
-            if (createdQuestionsList.length === 0) {
-                container.innerHTML = `<p class="text-slate-400 text-center py-2">තවම ප්‍රශ්න එකතු කර නැත.</p>`;
-                return;
-            }
-
-            createdQuestionsList.forEach((q, idx) => {
-                const div = document.createElement('div');
-                div.className = "flex justify-between items-center bg-white p-2 border rounded shadow-xs";
-                div.innerHTML = `
-                    <span class="font-medium text-slate-800">ප්‍රශ්නය ${idx + 1}: ${q.text.substring(0, 40)}...</span>
-                    <button type="button" onclick="removeQuestionFromList(${idx})" class="text-red-500 hover:text-red-700 font-semibold text-xs px-2 py-1">ඉවත් කරන්න</button>
-                `;
-                container.appendChild(div);
-            });
-        }
-
-        function removeQuestionFromList(idx) {
-            createdQuestionsList.splice(idx, 1);
-            createdQuestionsList.forEach((q, i) => q.id = i + 1);
-            renderPreviewQuestionsList();
-        }
-
-        async function savePaperData(e) {
-            e.preventDefault();
-            if (createdQuestionsList.length === 0) {
-                alert('ප්‍රශ්න පත්‍රයට අවම වශයෙන් එක් ප්‍රශ්නයක්වත් එකතු කරන්න.');
-                return;
-            }
-
-            const editingId = document.getElementById('editing-paper-id').value;
-            const grade = document.getElementById('paper-grade').value;
-            const category = document.getElementById('paper-category').value;
-            const subcategory = document.getElementById('paper-subcategory').value.trim();
-            const title = document.getElementById('paper-title').value.trim();
-            const videoUrl = document.getElementById('paper-video').value.trim();
-            const duration = parseInt(document.getElementById('paper-duration').value);
-
-            const paperPayload = {
-                id: editingId || ('paper_' + Date.now()),
-                grade,
-                category,
-                subcategory,
-                title,
-                videoUrl,
-                duration,
-                questions: createdQuestionsList
-            };
-
-            try {
-                const res = await fetch('/api/papers', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(paperPayload)
-                });
-                if(res.ok) {
-                    alert('ප්‍රශ්න පත්‍රය සාර්ථකව සුරකින ලදී!');
-                    showDashboard();
-                } else {
-                    alert('ප්‍රශ්න පත්‍රය සුරැකීමේදී දෝෂයක් සිදු විය.');
-                }
-            } catch(err) {
-                alert('සර්වර් දෝෂයකි.');
-            }
-        }
-
-        async function showResultsPanel() {
-            hideAllScreens();
-            document.getElementById('results-panel').classList.remove('hidden');
-            const results = await getSavedResults();
-            const tbody = document.getElementById('results-table-body');
-            tbody.innerHTML = '';
-
-            if (results.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="5" class="p-4 text-center text-slate-400">තවම කිසිදු ප්‍රතිඵල වාර්තාවක් නොමැත.</td></tr>`;
-                return;
-            }
-
-            results.reverse().forEach(res => {
-                const tr = document.createElement('tr');
-                tr.className = "border-b hover:bg-slate-50";
-                tr.innerHTML = `
-                    <td class="p-3">${res.date}</td>
-                    <td class="p-3 font-semibold text-slate-800">${res.studentName}</td>
-                    <td class="p-3 font-medium">${res.paperTitle}</td>
-                    <td class="p-3 font-bold text-indigo-600">${res.score} / ${res.total}</td>
-                    <td class="p-3">${res.percentage}%</td>
-                `;
-                tbody.appendChild(tr);
-            });
-        }
-
-        async function startExam(paperId) {
-            const papers = await getSavedPapers();
-            activePaper = papers.find(p => p.id === paperId);
-            if (!activePaper) return;
-
-            hideAllScreens();
+            document.getElementById('dashboard-screen').classList.add('hidden');
             document.getElementById('exam-screen').classList.remove('hidden');
 
-            document.getElementById('active-paper-title').innerText = activePaper.title;
-            document.getElementById('active-paper-sub').innerText = `${activePaper.grade} | ${activePaper.category} - ${activePaper.subcategory}`;
+            document.getElementById('active-paper-title').innerText = paper.title;
+            document.getElementById('active-paper-sub').innerText = `${paper.grade} | ${paper.category} - ${paper.subcategory || ''}`;
 
             const videoContainer = document.getElementById('video-container');
-            if (activePaper.videoUrl) {
-                let embedUrl = activePaper.videoUrl.replace("watch?v=", "embed/");
-                document.getElementById('youtube-iframe').src = embedUrl;
+            const iframe = document.getElementById('youtube-iframe');
+            if (paper.video && paper.video.includes('youtube.com')) {
+                let embedUrl = paper.video.replace('watch?v=', 'embed/');
+                if (embedUrl.includes('&')) embedUrl = embedUrl.split('&')[0];
+                iframe.src = embedUrl;
                 videoContainer.classList.remove('hidden');
             } else {
+                iframe.src = '';
                 videoContainer.classList.add('hidden');
             }
 
-            randomizedQuestions = activePaper.questions.map(q => {
-                let optionsWithIndex = q.options.map((opt, idx) => ({ text: opt, originalIndex: idx }));
-                let shuffledOptions = shuffleArray(optionsWithIndex);
-                let newAnswerIndex = shuffledOptions.findIndex(item => item.originalIndex === q.answer);
-
-                return {
-                    ...q,
-                    options: shuffledOptions.map(item => item.text),
-                    answer: newAnswerIndex
-                };
-            });
-
-            currentQIndex = 0;
-            studentAnswers = {};
-            examElapsedSeconds = 0;
-            examTimeLeft = activePaper.duration * 60;
-
+            renderQuestion();
             renderQuestionGridNav();
-            loadQuestion(currentQIndex);
-            startTimer();
+            startExamTimer();
         }
 
-        function startTimer() {
+        function startExamTimer() {
             if (examTimer) clearInterval(examTimer);
-            updateTimerDisplay();
-
             examTimer = setInterval(() => {
                 examTimeLeft--;
                 examElapsedSeconds++;
-                updateTimerDisplay();
-
+                let m = Math.floor(examTimeLeft / 60);
+                let s = examTimeLeft % 60;
+                document.getElementById('timer-display').innerText = `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+                
                 if (examTimeLeft <= 0) {
                     clearInterval(examTimer);
-                    alert('විභාග කාලය අවසන් විය!');
+                    alert('කාලය අවසන්! ඔබගේ පිළිතුරු ස්වයංක්‍රීයව සුරකිනු ලැබේ.');
                     submitExam();
                 }
             }, 1000);
         }
 
-        function updateTimerDisplay() {
-            const minutes = Math.floor(examTimeLeft / 60);
-            const seconds = examTimeLeft % 60;
-            document.getElementById('timer-display').innerText = 
-                `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
-        }
-
-        function renderQuestionGridNav() {
-            const navGrid = document.getElementById('q-grid-nav');
-            navGrid.innerHTML = '';
-
-            randomizedQuestions.forEach((q, idx) => {
-                const btn = document.createElement('button');
-                btn.id = `grid-q-${idx}`;
-                btn.className = `p-2 rounded font-bold text-xs text-center border transition ${
-                    studentAnswers[idx] !== undefined ? 'bg-emerald-500 text-white border-emerald-600' : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
-                }`;
-                btn.innerText = (idx + 1).toString().padStart(2, '0');
-                btn.onclick = () => jumpToQuestion(idx);
-                navGrid.appendChild(btn);
-            });
-        }
-
-        function loadQuestion(index) {
-            currentQIndex = index;
-            const q = randomizedQuestions[index];
-
-            document.getElementById('q-number-badge').innerText = `ප්‍රශ්න අංක ${index + 1} / ${randomizedQuestions.length}`;
+        function renderQuestion() {
+            const q = randomizedQuestions[currentQIndex];
+            document.getElementById('q-number-badge').innerText = `ප්‍රශ්න අංක ${currentQIndex + 1} / ${randomizedQuestions.length}`;
             document.getElementById('question-text').innerText = q.text;
 
             const imgBox = document.getElementById('question-image-box');
-            const qImg = document.getElementById('q-image');
-            if (q.imageUrl && q.imageUrl !== "") {
-                qImg.src = q.imageUrl;
+            const imgTag = document.getElementById('q-image');
+            if (q.imageUrl) {
+                imgTag.src = q.imageUrl;
                 imgBox.classList.remove('hidden');
             } else {
                 imgBox.classList.add('hidden');
+                imgTag.src = '';
             }
 
             const optsContainer = document.getElementById('options-container');
             optsContainer.innerHTML = '';
 
-            q.options.forEach((optText, oIdx) => {
-                const isSelected = studentAnswers[index] === oIdx;
-                const div = document.createElement('div');
-                div.className = `p-3.5 border rounded-lg cursor-pointer transition flex items-center space-x-3 ${
-                    isSelected ? 'border-indigo-600 bg-indigo-50 font-semibold text-indigo-900' : 'hover:bg-slate-50 border-slate-200'
-                }`;
-                div.onclick = () => selectOption(index, oIdx);
-                div.innerHTML = `
-                    <div class="w-5 h-5 rounded-full border flex items-center justify-center text-xs ${isSelected ? 'border-indigo-600 bg-indigo-600 text-white' : 'border-slate-400'}">
-                        ${String.fromCharCode(65 + oIdx)}
-                    </div>
-                    <span class="text-sm">${optText}</span>
+            q.options.forEach((opt, idx) => {
+                const isSelected = studentAnswers[currentQIndex] === idx;
+                const label = document.createElement('label');
+                label.className = `flex items-center space-x-3 p-3 rounded-xl border cursor-pointer transition ${isSelected ? 'border-indigo-600 bg-indigo-50/50 ring-1 ring-indigo-600' : 'hover:bg-slate-50 border-slate-200'}`;
+                label.innerHTML = `
+                    <input type="radio" name="q-option" value="${idx}" ${isSelected ? 'checked' : ''} onchange="selectAnswer(${idx})" class="text-indigo-600 focus:ring-indigo-500 h-4 w-4">
+                    <span class="text-sm font-medium text-slate-800">${opt}</span>
                 `;
-                optsContainer.appendChild(div);
+                optsContainer.appendChild(label);
             });
 
-            const nextBtn = document.getElementById('next-btn');
-            const submitBtn = document.getElementById('submit-btn');
-            if (index === randomizedQuestions.length - 1) {
-                nextBtn.classList.add('hidden');
-                submitBtn.classList.remove('hidden');
-            } else {
-                nextBtn.classList.remove('hidden');
-                submitBtn.classList.add('hidden');
-            }
-
-            highlightNavGrid();
+            document.getElementById('next-btn').classList.toggle('hidden', currentQIndex === randomizedQuestions.length - 1);
+            document.getElementById('submit-btn').classList.toggle('hidden', currentQIndex !== randomizedQuestions.length - 1);
         }
 
-        function selectOption(qIdx, optIdx) {
-            studentAnswers[qIdx] = optIdx;
-            loadQuestion(qIdx);
+        function selectAnswer(optIdx) {
+            studentAnswers[currentQIndex] = optIdx;
             renderQuestionGridNav();
         }
 
-        function jumpToQuestion(idx) {
-            loadQuestion(idx);
+        function nextQuestion() {
+            if (currentQIndex < randomizedQuestions.length - 1) {
+                currentQIndex++;
+                renderQuestion();
+            }
         }
 
         function prevQuestion() {
-            if (currentQIndex > 0) loadQuestion(currentQIndex - 1);
+            if (currentQIndex > 0) {
+                currentQIndex--;
+                renderQuestion();
+            }
         }
 
-        function nextQuestion() {
-            if (currentQIndex < randomizedQuestions.length - 1) loadQuestion(currentQIndex + 1);
-        }
-
-        function highlightNavGrid() {
+        function renderQuestionGridNav() {
+            const gridNav = document.getElementById('q-grid-nav');
+            gridNav.innerHTML = '';
             randomizedQuestions.forEach((_, idx) => {
-                const btn = document.getElementById(`grid-q-${idx}`);
-                if (btn) {
-                    if (idx === currentQIndex) {
-                        btn.classList.add('ring-2', 'ring-indigo-500');
-                    } else {
-                        btn.classList.remove('ring-2', 'ring-indigo-500');
-                    }
-                }
+                const answered = studentAnswers[idx] !== undefined;
+                const isCurrent = currentQIndex === idx;
+                const btn = document.createElement('button');
+                btn.type = 'button';
+                btn.className = `h-9 rounded-lg font-bold text-xs transition border ${isCurrent ? 'ring-2 ring-indigo-600' : ''} ${answered ? 'bg-emerald-500 text-white border-emerald-600' : 'bg-slate-100 text-slate-700 border-slate-200 hover:bg-slate-250'}`;
+                btn.innerText = idx + 1;
+                btn.onclick = () => { currentQIndex = idx; renderQuestion(); };
+                gridNav.appendChild(btn);
             });
         }
 
         function confirmSubmit() {
-            if (confirm('ඔබට විභාගය අවසන් කිරීමට අවශ්‍ය බව තහවුරු කරන්න?')) {
+            if (confirm('ඔබට සැබවින්ම විභාගය අවසන් කර ප්‍රතිඵල ලබා ගැනීමට අවශ්‍යද?')) {
                 submitExam();
             }
         }
@@ -1009,69 +747,244 @@
             if (examTimer) clearInterval(examTimer);
 
             let score = 0;
-            const total = randomizedQuestions.length;
-
             randomizedQuestions.forEach((q, idx) => {
-                if (studentAnswers[idx] === q.answer) {
+                if (studentAnswers[idx] === q.correct) {
                     score++;
                 }
             });
 
-            const percentage = Math.round((score / total) * 100);
-            const elapsedMin = Math.floor(examElapsedSeconds / 60);
-            const elapsedSec = examElapsedSeconds % 60;
-            const timeFormatted = `${elapsedMin.toString().padStart(2, '0')}:${elapsedSec.toString().padStart(2, '0')}`;
+            const total = randomizedQuestions.length;
+            const percentage = total > 0 ? Math.round((score / total) * 100) : 0;
+            const timeSpentM = Math.floor(examElapsedSeconds / 60);
+            const timeSpentS = examElapsedSeconds % 60;
+            const timeStr = `${timeSpentM.toString().padStart(2, '0')}:${timeSpentS.toString().padStart(2, '0')}`;
 
-            const newResult = {
-                studentName: currentUser ? currentUser.username : "අඥාත ශිෂ්‍යයා",
+            const resultRecord = {
+                date: new Date().toLocaleString('si-LK'),
+                username: currentUser ? currentUser.username : 'අමුත්තා',
                 paperTitle: activePaper.title,
-                score,
-                total,
-                percentage,
-                date: new Date().toLocaleDateString('si-LK') + ' ' + new Date().toLocaleTimeString('si-LK', {hour: '2-digit', minute:'2-digit'})
+                score: `${score} / ${total}`,
+                percentage: `${percentage}%`,
+                timeSpent: timeStr
             };
 
             try {
                 await fetch('/api/results', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(newResult)
+                    body: JSON.stringify(resultRecord)
                 });
-            } catch(e) {
-                console.error("Result save error", e);
-            }
+            } catch (e) { console.error(e); }
 
-            hideAllScreens();
+            document.getElementById('exam-screen').classList.add('hidden');
             document.getElementById('result-screen').classList.remove('hidden');
 
             document.getElementById('result-paper-name').innerText = activePaper.title;
             document.getElementById('res-score').innerText = `${score} / ${total}`;
             document.getElementById('res-percentage').innerText = `${percentage}%`;
-            document.getElementById('res-time').innerText = timeFormatted;
+            document.getElementById('res-time').innerText = timeStr;
 
             const reviewContainer = document.getElementById('review-container');
             reviewContainer.innerHTML = '';
-
             randomizedQuestions.forEach((q, idx) => {
-                const userAns = studentAnswers[idx];
-                const isCorrect = userAns === q.answer;
-
+                const studentOpt = studentAnswers[idx];
+                const isCorrect = studentOpt === q.correct;
                 const div = document.createElement('div');
-                div.className = `p-4 rounded-lg border text-sm space-y-2 ${isCorrect ? 'bg-emerald-50 border-emerald-200' : 'bg-red-50 border-red-200'}`;
+                div.className = `p-4 rounded-xl border text-sm space-y-1 ${isCorrect ? 'bg-emerald-50/50 border-emerald-200' : 'bg-red-50/50 border-red-200'}`;
                 div.innerHTML = `
-                    <div class="font-bold flex items-center justify-between">
-                        <span>ප්‍රශ්නය ${idx + 1}: ${q.text}</span>
-                        <span class="${isCorrect ? 'text-emerald-700' : 'text-red-700'}">${isCorrect ? '✓ නිවැරදියි' : '✗ වැරදියි'}</span>
-                    </div>
-                    ${q.imageUrl ? `<img src="${q.imageUrl}" class="max-h-32 rounded border my-1">` : ''}
-                    <div class="text-xs text-slate-600">
-                        <div>ඔබේ පිළිතුර: <span class="font-semibold">${userAns !== undefined ? q.options[userAns] : 'පිළිතුරු සපයා නැත'}</span></div>
-                        <div>නිවැරදි පිළිතුර: <span class="font-semibold text-emerald-800">${q.options[q.answer]}</span></div>
-                        <div class="mt-1 text-slate-500 italic">විසඳුම: ${q.explanation}</div>
-                    </div>
+                    <div class="font-bold text-slate-800">ප්‍රශ්නය ${idx + 1}: ${q.text}</div>
+                    <div class="text-xs text-slate-600">ඔබේ පිළිතුර: <span class="font-semibold ${isCorrect ? 'text-emerald-600' : 'text-red-600'}">${studentOpt !== undefined ? q.options[studentOpt] : 'පිළිතුරු සපයා නැත'}</span></div>
+                    <div class="text-xs text-slate-600">නිවැරදි පිළිතුර: <span class="font-semibold text-emerald-600">${q.options[q.correct]}</span></div>
+                    ${q.explanation ? `<div class="text-xs text-indigo-700 pt-1 font-medium">විසඳුම: ${q.explanation}</div>` : ''}
                 `;
                 reviewContainer.appendChild(div);
             });
+        }
+
+        // Admin Panel Question Builder Handlers (With Edit and Delete support)
+        function showAdminPanel() {
+            createdQuestionsList = [];
+            editingQuestionIndex = null;
+            document.getElementById('create-paper-form').reset();
+            document.querySelector('#create-paper-form button[type="button"]').innerText = "+ මෙම ප්‍රශ්නය ලැයිස්තුවට එකතු කරන්න";
+            renderAddedQuestionsPreview();
+            
+            document.getElementById('dashboard-screen').classList.add('hidden');
+            document.getElementById('admin-panel').classList.remove('hidden');
+        }
+
+        function addSingleQuestionToList() {
+            const text = document.getElementById('single-q-text').value.trim();
+            const imageUrl = document.getElementById('single-q-url').value.trim();
+            const opt0 = document.getElementById('opt-0').value.trim();
+            const opt1 = document.getElementById('opt-1').value.trim();
+            const opt2 = document.getElementById('opt-2').value.trim();
+            const opt3 = document.getElementById('opt-3').value.trim();
+            const correct = parseInt(document.getElementById('correct-opt-idx').value);
+            const explanation = document.getElementById('single-q-exp').value.trim();
+
+            if (!text || !opt0 || !opt1 || !opt2 || !opt3) {
+                alert('කරුණාකර ප්‍රශ්නය සහ විකල්ප 4ම ඇතුළත් කරන්න.');
+                return;
+            }
+
+            const questionObj = {
+                text,
+                imageUrl: imageUrl || null,
+                options: [opt0, opt1, opt2, opt3],
+                correct,
+                explanation
+            };
+
+            if (editingQuestionIndex !== null) {
+                createdQuestionsList[editingQuestionIndex] = questionObj;
+                editingQuestionIndex = null;
+                document.querySelector('#create-paper-form button[type="button"]').innerText = "+ මෙම ප්‍රශ්නය ලැයිස්තුවට එකතු කරන්න";
+            } else {
+                createdQuestionsList.push(questionObj);
+            }
+
+            document.getElementById('single-q-text').value = '';
+            document.getElementById('single-q-url').value = '';
+            document.getElementById('single-q-image').value = '';
+            document.getElementById('opt-0').value = '';
+            document.getElementById('opt-1').value = '';
+            document.getElementById('opt-2').value = '';
+            document.getElementById('opt-3').value = '';
+            document.getElementById('single-q-exp').value = '';
+
+            renderAddedQuestionsPreview();
+        }
+
+        function renderAddedQuestionsPreview() {
+            document.getElementById('added-q-count').innerText = createdQuestionsList.length;
+            const preview = document.getElementById('preview-questions-list');
+            
+            if (createdQuestionsList.length === 0) {
+                preview.innerHTML = '<span class="text-slate-400">තවම ප්‍රශ්න එකතු කර නැත.</span>';
+                return;
+            }
+
+            preview.innerHTML = createdQuestionsList.map((q, i) => `
+                <div class="p-2.5 bg-white rounded-lg border flex justify-between items-center gap-2">
+                    <div class="truncate">
+                        <span class="font-bold text-indigo-600">ප්‍රශ්නය ${i + 1}:</span> ${q.text}
+                    </div>
+                    <div class="flex items-center space-x-2 shrink-0">
+                        <button type="button" onclick="editQuestion(${i})" class="text-xs bg-amber-500 hover:bg-amber-600 text-white px-2.5 py-1 rounded font-semibold">වෙනස් කරන්න (Edit)</button>
+                        <button type="button" onclick="deleteQuestion(${i})" class="text-xs bg-red-500 hover:bg-red-600 text-white px-2.5 py-1 rounded font-semibold">මකන්න (Delete)</button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function editQuestion(index) {
+            const q = createdQuestionsList[index];
+            editingQuestionIndex = index;
+
+            document.getElementById('single-q-text').value = q.text;
+            document.getElementById('single-q-url').value = q.imageUrl || '';
+            document.getElementById('opt-0').value = q.options[0] || '';
+            document.getElementById('opt-1').value = q.options[1] || '';
+            document.getElementById('opt-2').value = q.options[2] || '';
+            document.getElementById('opt-3').value = q.options[3] || '';
+            document.getElementById('correct-opt-idx').value = q.correct;
+            document.getElementById('single-q-exp').value = q.explanation || '';
+
+            document.querySelector('#create-paper-form button[type="button"]').innerText = "🔄 මෙම ප්‍රශ්නය යාවත්කාලීන කරන්න (Update)";
+            document.getElementById('single-q-text').scrollIntoView({ behavior: 'smooth' });
+        }
+
+        function deleteQuestion(index) {
+            if (confirm('මෙම ප්‍රශ්නය ඉවත් කිරීමට අවශ්‍ය බව ස්ථිරද?')) {
+                createdQuestionsList.splice(index, 1);
+                if (editingQuestionIndex === index) {
+                    editingQuestionIndex = null;
+                    document.querySelector('#create-paper-form button[type="button"]').innerText = "+ මෙම ප්‍රශ්නය ලැයිස්තුවට එකතු කරන්න";
+                }
+                renderAddedQuestionsPreview();
+            }
+        }
+
+        async function savePaperData(e) {
+            e.preventDefault();
+            if (createdQuestionsList.length === 0) {
+                alert('කරුණාකර අවම වශයෙන් එක් ප්‍රශ්නයක්වත් එකතු කරන්න.');
+                return;
+            }
+
+            const newPaper = {
+                id: Date.now(),
+                grade: document.getElementById('paper-grade').value,
+                category: document.getElementById('paper-category').value,
+                subcategory: document.getElementById('paper-subcategory').value.trim(),
+                title: document.getElementById('paper-title').value.trim(),
+                video: document.getElementById('paper-video').value.trim(),
+                duration: parseInt(document.getElementById('paper-duration').value) || 40,
+                questions: createdQuestionsList
+            };
+
+            try {
+                await fetch('/api/papers', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(newPaper)
+                });
+                alert('ප්‍රශ්න පත්‍රය සාර්ථකව සුරකින ලදී!');
+                showDashboard();
+            } catch (err) {
+                alert('ප්‍රශ්න පත්‍රය සුරැකීමේදී දෝෂයක් සිදුවිය.');
+            }
+        }
+
+        async function showStudentProfile() {
+            document.getElementById('dashboard-screen').classList.add('hidden');
+            document.getElementById('profile-screen').classList.remove('hidden');
+            document.getElementById('profile-name-title').innerText = `ශිෂ්‍ය පැතිකඩ: ${currentUser ? currentUser.username : ''}`;
+
+            const tbody = document.getElementById('profile-table-body');
+            tbody.innerHTML = `<tr><td colspan="4" class="p-4 text-center text-slate-400">ප්‍රතිඵල පූරණය වෙමින් පවතී...</td></tr>`;
+
+            const results = await getSavedResults();
+            const myResults = results.filter(r => !currentUser || r.username === currentUser.username);
+
+            if (myResults.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="4" class="p-4 text-center text-slate-400">ඔබ තවම කිසිදු විභාගයකට මුහුණ දී නැත.</td></tr>`;
+                return;
+            }
+
+            tbody.innerHTML = myResults.map(r => `
+                <tr class="hover:bg-slate-50">
+                    <td class="p-3 border">${r.date}</td>
+                    <td class="p-3 border font-semibold text-slate-800">${r.paperTitle}</td>
+                    <td class="p-3 border">${r.score}</td>
+                    <td class="p-3 border font-bold text-indigo-600">${r.percentage}</td>
+                </tr>
+            `).join('');
+        }
+
+        async function showResultsPanel() {
+            document.getElementById('dashboard-screen').classList.add('hidden');
+            document.getElementById('results-panel').classList.remove('hidden');
+
+            const tbody = document.getElementById('results-table-body');
+            tbody.innerHTML = `<tr><td colspan="5" class="p-4 text-center text-slate-400">වාර්තා පූරණය වෙමින් පවතී...</td></tr>`;
+
+            const results = await getSavedResults();
+            if (results.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="5" class="p-4 text-center text-slate-400">තවම සිසුන් විභාග සඳහා පෙනී සිට නැත.</td></tr>`;
+                return;
+            }
+
+            tbody.innerHTML = results.map(r => `
+                <tr class="hover:bg-slate-50">
+                    <td class="p-3 border">${r.date}</td>
+                    <td class="p-3 border font-semibold text-slate-800">${r.username}</td>
+                    <td class="p-3 border">${r.paperTitle}</td>
+                    <td class="p-3 border">${r.score}</td>
+                    <td class="p-3 border font-bold text-indigo-600">${r.percentage}</td>
+                </tr>
+            `).join('');
         }
     </script>
 </body>

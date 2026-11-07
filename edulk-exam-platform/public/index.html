@@ -216,7 +216,7 @@
 
                 <!-- Custom Question Builder Section -->
                 <div class="border-t pt-4 mt-6">
-                    <h3 class="font-bold text-slate-800 text-lg mb-2">ප්‍රශ්නයක් එකතු කිරීම</h3>
+                    <h3 class="font-bold text-slate-800 text-lg mb-2">ප්‍රශ්නයක් එකතු කිරීම / සංශෝධනය</h3>
                     <p class="text-xs text-slate-500 mb-4">ප්‍රශ්නය සඳහා රූපයක් උඩුගත කරන්න හෝ Image URL එකක් ලබා දෙන්න.</p>
 
                     <div class="bg-slate-50 p-4 rounded-xl border space-y-3">
@@ -261,7 +261,7 @@
                             </div>
                         </div>
 
-                        <button type="button" onclick="addSingleQuestionToList()" class="w-full bg-slate-800 hover:bg-slate-900 text-white font-semibold py-2 rounded-lg text-sm transition">+ මෙම ප්‍රශ්නය ලැයිස්තුවට එකතු කරන්න</button>
+                        <button type="button" onclick="addSingleQuestionToList()" id="add-update-q-btn" class="w-full bg-slate-800 hover:bg-slate-900 text-white font-semibold py-2 rounded-lg text-sm transition">+ මෙම ප්‍රශ්නය ලැයිස්තුවට එකතු කරන්න</button>
                     </div>
 
                     <div class="mt-4 flex justify-between items-center">
@@ -407,6 +407,7 @@
         let examElapsedSeconds = 0;
         let createdQuestionsList = [];
         let randomizedQuestions = [];
+        let editingQuestionIdx = null; // මේ මොහොතේ Edit කරන ප්‍රශ්නයේ Index එක
 
         async function getSavedPapers() {
             try {
@@ -660,7 +661,11 @@
         function showAdminPanel(paperToEdit = null) {
             hideAllScreens();
             document.getElementById('admin-panel').classList.remove('hidden');
+            editingQuestionIdx = null;
             
+            const addBtn = document.getElementById('add-update-q-btn');
+            if(addBtn) addBtn.innerText = "+ මෙම ප්‍රශ්නය ලැයිස්තුවට එකතු කරන්න";
+
             if (paperToEdit) {
                 document.getElementById('admin-panel-title').innerText = "ප්‍රශ්න පත්‍රය සංශෝධනය කිරීම (Edit Paper)";
                 document.getElementById('editing-paper-id').value = paperToEdit.id;
@@ -670,7 +675,7 @@
                 document.getElementById('paper-title').value = paperToEdit.title;
                 document.getElementById('paper-video').value = paperToEdit.videoUrl || '';
                 document.getElementById('paper-duration').value = paperToEdit.duration;
-                createdQuestionsList = [...paperToEdit.questions];
+                createdQuestionsList = JSON.parse(JSON.stringify(paperToEdit.questions));
             } else {
                 document.getElementById('admin-panel-title').innerText = "නව ප්‍රශ්න පත්‍රයක් සකස් කිරීම";
                 document.getElementById('editing-paper-id').value = '';
@@ -688,6 +693,26 @@
             }
         }
 
+        // ප්‍රශ්නයක් Edit කිරීමට Form එකට දත්ත ලබාගැනීම
+        function editQuestionInList(idx) {
+            const q = createdQuestionsList[idx];
+            document.getElementById('single-q-text').value = q.text;
+            document.getElementById('single-q-url').value = q.imageUrl || '';
+            document.getElementById('opt-0').value = q.options[0] || '';
+            document.getElementById('opt-1').value = q.options[1] || '';
+            document.getElementById('opt-2').value = q.options[2] || '';
+            document.getElementById('opt-3').value = q.options[3] || '';
+            document.getElementById('correct-opt-idx').value = q.answer;
+            document.getElementById('single-q-exp').value = q.explanation || '';
+
+            editingQuestionIdx = idx;
+            const addBtn = document.getElementById('add-update-q-btn');
+            if (addBtn) addBtn.innerText = "✓ ප්‍රශ්නය යාවත්කාලීන කරන්න (Update Question)";
+
+            document.getElementById('single-q-text').scrollIntoView({ behavior: 'smooth' });
+        }
+
+        // ප්‍රශ්නයක් එකතු කිරීම හෝ යාවත්කාලීන කිරීම (Add / Update Question)
         function addSingleQuestionToList() {
             const qText = document.getElementById('single-q-text').value.trim();
             const imageInput = document.getElementById('single-q-image');
@@ -707,18 +732,28 @@
             }
 
             const processAdd = (imgSrc) => {
+                const finalImg = imgSrc || (editingQuestionIdx !== null ? createdQuestionsList[editingQuestionIdx].imageUrl : "");
                 const newQ = {
-                    id: createdQuestionsList.length + 1,
+                    id: editingQuestionIdx !== null ? createdQuestionsList[editingQuestionIdx].id : (createdQuestionsList.length + 1),
                     text: qText,
-                    imageUrl: imgSrc || "",
+                    imageUrl: finalImg,
                     options: opts,
                     answer: correctAns,
                     explanation: exp || "විස්තරාත්මක විසඳුම ලබා දී නොමැත."
                 };
 
-                createdQuestionsList.push(newQ);
+                if (editingQuestionIdx !== null) {
+                    createdQuestionsList[editingQuestionIdx] = newQ;
+                    editingQuestionIdx = null;
+                    const addBtn = document.getElementById('add-update-q-btn');
+                    if (addBtn) addBtn.innerText = "+ මෙම ප්‍රශ්නය ලැයිස්තුවට එකතු කරන්න";
+                } else {
+                    createdQuestionsList.push(newQ);
+                }
+
                 renderPreviewQuestionsList();
 
+                // Form Fields Clear කිරීම
                 document.getElementById('single-q-text').value = '';
                 document.getElementById('single-q-image').value = '';
                 document.getElementById('single-q-url').value = '';
@@ -742,6 +777,7 @@
             }
         }
 
+        // එකතු කළ ප්‍රශ්න ලැයිස්තුව Display කිරීම
         function renderPreviewQuestionsList() {
             const container = document.getElementById('preview-questions-list');
             document.getElementById('added-q-count').innerText = createdQuestionsList.length;
@@ -757,7 +793,10 @@
                 div.className = "flex justify-between items-center bg-white p-2 border rounded shadow-xs";
                 div.innerHTML = `
                     <span class="font-medium text-slate-800">ප්‍රශ්නය ${idx + 1}: ${q.text.substring(0, 40)}...</span>
-                    <button type="button" onclick="removeQuestionFromList(${idx})" class="text-red-500 hover:text-red-700 font-semibold text-xs px-2 py-1">ඉවත් කරන්න</button>
+                    <div class="flex items-center space-x-1">
+                        <button type="button" onclick="editQuestionInList(${idx})" class="text-amber-600 hover:text-amber-800 font-semibold text-xs px-2 py-1">සංශෝධනය</button>
+                        <button type="button" onclick="removeQuestionFromList(${idx})" class="text-red-500 hover:text-red-700 font-semibold text-xs px-2 py-1">ඉවත් කරන්න</button>
+                    </div>
                 `;
                 container.appendChild(div);
             });
@@ -766,6 +805,13 @@
         function removeQuestionFromList(idx) {
             createdQuestionsList.splice(idx, 1);
             createdQuestionsList.forEach((q, i) => q.id = i + 1);
+            if (editingQuestionIdx === idx) {
+                editingQuestionIdx = null;
+                const addBtn = document.getElementById('add-update-q-btn');
+                if (addBtn) addBtn.innerText = "+ මෙම ප්‍රශ්නය ලැයිස්තුවට එකතු කරන්න";
+            } else if (editingQuestionIdx > idx) {
+                editingQuestionIdx--;
+            }
             renderPreviewQuestionsList();
         }
 

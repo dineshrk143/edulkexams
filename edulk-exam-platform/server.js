@@ -134,6 +134,16 @@ app.get('/api/results', async (req, res) => {
     }
 });
 
+// 8. Get All Registered Students (අලුතින් එකතු කරන ලද කොටස)
+app.get('/api/students', async (req, res) => {
+    try {
+        const students = await Student.find({}, 'username email phone');
+        res.json(students);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
 app.listen(PORT, () => {
     console.log(`Server is running on http://localhost:${PORT}`);
 });

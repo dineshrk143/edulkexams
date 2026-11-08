@@ -4,16 +4,13 @@ const path = require('path');
 
 const app = express();
 const PORT = process.env.PORT || 10000;
-app.listen(PORT, '0.0.0.0', () => {
-  console.log(`Server is running on port ${PORT}`);
-});
 
-// Middleware
+// 1. Middleware
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
 app.use(express.static(path.join(__dirname, 'public')));
 
-// MongoDB Connection
+// 2. MongoDB Connection
 const MONGO_URI = "mongodb+srv://dineshrk143_db_user:tLYswFz2mO4Sni3I@cluster0.mqxxnkv.mongodb.net";
 
 mongoose.connect(MONGO_URI)
@@ -137,7 +134,7 @@ app.get('/api/results', async (req, res) => {
     }
 });
 
-// 8. Get All Registered Students (අලුතින් එකතු කරන ලද කොටස)
+// 8. Get All Registered Students
 app.get('/api/students', async (req, res) => {
     try {
         const students = await Student.find({}, 'username email phone');
@@ -147,6 +144,7 @@ app.get('/api/students', async (req, res) => {
     }
 });
 
-app.listen(PORT, () => {
-    console.log(`Server is running on http://localhost:${PORT}`);
+// 3. Server Start (සියලුම රවුට්ස් වලට යටින් එක වාරයක් පමණක් මෙසේ තබන්න)
+app.listen(PORT, '0.0.0.0', () => {
+    console.log(`Server is running on port ${PORT}`);
 });
